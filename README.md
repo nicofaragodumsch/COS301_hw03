@@ -6,11 +6,12 @@ assembly language program that, when executed with `coco`, prints what the HW02
 interpreter (`calc.py`) prints for the same input.
 
 That equality has been checked by running the real virtual machine, not by
-inspection, and it holds exactly for every program in the required (integer)
-language.  For the extended language it holds except where the JCoCo virtual
-machine cannot represent or print a real number as HW02's Python does; those
-cases are enumerated under "Limits of the target machine" below, and the file
-`tests/vmlimits.calc` collects them.
+inspection.  It holds for every program in the required (integer) language
+whose values stay inside the machine's 32-bit integer range, and for the
+extended language except where JCoCo cannot represent or print a real number as
+HW02's Python does.  Both kinds of exception are properties of the target, not
+choices of the compiler; each is enumerated under "Limits of the target
+machine" below, and `tests/vmlimits.calc` demonstrates every one of them.
 
 ## Contents
 
@@ -24,6 +25,7 @@ cases are enumerated under "Limits of the target machine" below, and the file
 | `tests/tNN.out` | Standard output of the interpreter — and, as the tests confirm, of the compiled program under `coco`. |
 | `tests/tNN.err`, `tests/tNN.cerr` | Diagnostics from the interpreter and the compiler, where any occur. |
 | `tests/vmlimits.*` | Inputs whose output cannot agree, with both outputs recorded side by side. |
+| `tests/badconst.*` | A constant the machine cannot hold; asserts the compiler's diagnostic and exit status. |
 | `tools/jcocosim.py` | Testing aid, not part of the assignment: a simulator for the JCoCo subset used here, modelling the real VM's arithmetic and printing. |
 | `tools/fuzz.py` | Testing aid: random differential testing against the interpreter. |
 
@@ -35,6 +37,12 @@ coco t01.casm
 sh runtests.sh                 # uses coco if present, else tools/jcocosim.py
 python3 tools/fuzz.py 1 300    # COCO=coco to fuzz against the real VM
 ```
+
+`runtests.sh` expects to sit at the root of this tree, with `calccomp.py`,
+`calc.py`, `tests/` and `tools/` beside it; unpack the archive rather than
+copying the files out of it.  If `coco` is not on the PATH the suite falls back
+on `tools/jcocosim.py`, so it runs either way; `COCO=/path/to/coco sh
+runtests.sh` selects a particular build.
 
 The compiler needs PLY (`pip install ply`), as HW02 did.  It writes only the
 assembly program on standard output; diagnostics and notes go to standard
@@ -105,7 +113,7 @@ regression test.
 | `-7 // 2` is `-4`, `-7 % 2` is `1` (floored) | `PyInt` uses Java's `/` and `%`: `-3` and `-1` (truncated) | `_imod` corrects the remainder's sign; `_idiv` divides the exact multiple `a - (a % b)` | 
 | `1 // 0` warns and yields `0`, and the run continues | raises, ending the run, so every later statement's output is lost | each division routine tests its divisor and returns HW02's typed zero |
 | `7.5 / 2.0`, `7.5 // 2.0` | `PyFloat` implements no `__truediv__` and no `__floordiv__` at all — a run-time `TypeError` | `_rdiv` converts a whole-number dividend and divides exactly, else multiplies by a reciprocal; `_rdivf` floors that quotient |
-| `-7.5 % 2.0` is `0.5` | `PyFloat.__mod__` truncates, through a 32-bit cast | `_rmod` computes `a - b * (a // b)` |
+| `-7.5 % 2.0` is `0.5` | `PyFloat.__mod__` truncates, through a 32-bit cast | `_rdm` divides long-hand for an exact remainder; `_rmod` corrects its sign |
 | `floor(-2.5)` is `-3` | no `floor` built-in, no `math`, and `int()` truncates | `_rfloor`/`_floor` adjust the truncated value downward when needed |
 | the real `3.14159` | the assembler reads real literals with 32-bit `Float.parseFloat`: `3.141590118408203` | no real literal is ever emitted; see below |
 
@@ -120,8 +128,19 @@ by operand type; each is emitted only if the program uses it.
 | `//` | `_idiv` | `_rdivf` |
 | `%` | `_imod` | `_rmod` |
 
-with `_rfloor` (floor of a real, as a real) and `_floor` (as an integer, for
-the `floor()` cast) beneath them.  Two properties are worth noting.
+`_rdm` is binary long division: the divisor is doubled until it reaches the
+dividend, then halved back down, subtracted whenever it fits, with the matching
+power of two accumulated into the quotient.  Every step is exact — scaling by
+two neither rounds nor drops bits, and a subtraction happens only when
+`d <= r < 2d`, where the difference is representable — so it yields HW02's
+remainder bit for bit, which no combination of the machine's rounding
+operations can reconstruct.  It runs once per power of two between the
+operands: fewer than 60 iterations for ordinary values, about 2100 at the
+extremes of the exponent range.
+
+with `_rabs`, `_rdm` (long division of reals, below), `_rfloor` (floor of a
+real, as a real) and `_floor` (as an integer, for the `floor()` cast) beneath
+them.  Two properties are worth noting.
 
 * They are written so as to be correct **on either build of JCoCo**.  The
   sign correction in `_imod` cannot fire on a machine whose `%` is already
@@ -218,14 +237,30 @@ records each one, and `tests/vmlimits.out` and `.run` show the two outputs.
   `0.30000000000000004`, and `1.5e-12` prints as `0.0000000000015`.  Values
   from `1e-4` up to `1e16` — where Python also avoids exponent notation — print
   identically once the constants are exact, which is why the fix above matters.
-* **Real division can differ in the last bit.**  When the dividend is not a
-  whole number in the machine's integer range, `_rdiv` must form `a * (1/b)`,
-  which rounds twice; about one such division in six lands one bit away from
-  HW02's.  Correctly rounded division of two arbitrary doubles is precisely the
-  operation the machine lacks, so no instruction sequence can do better.  The
-  compiler says so once, on standard error, for any program that divides reals.
+* **Real `/` can differ in the last bit.**  When the dividend is not a whole
+  number in the machine's integer range, `_rdiv` must form `a * (1/b)`, which
+  rounds twice.  Measured over 100 000 random pairs of short decimals, 35.8% of
+  quotients print differently from HW02's — of which 11.3 points are caused by
+  this rounding and the rest by JCoCo's printing, which would have differed
+  anyway.  `0.3 / 0.1` is an instance: HW02 prints `2.9999999999999996` and the
+  compiled program prints `3.0`.  Correctly rounded division of two arbitrary
+  doubles is precisely the operation the machine lacks, so no instruction
+  sequence can do better; the compiler says so once, on standard error, for any
+  program that divides reals.
+
+  `//` and `%` on reals do *not* inherit this: they never call `_rdiv`.  An
+  earlier version computed them as `a - b * (a // b)` from the approximate
+  quotient, which was much worse than the phrase "last bit" suggests — 33.5% of
+  remainders wrong, and every disagreeing `//` off by a whole unit, since one
+  bit of error flips the floor at an integer boundary.  `_rdm` removed both:
+  over the same 100 000 pairs, `//` and `%` now agree with HW02 exactly, and
+  the 0.74% of remainders that still print differently do so only because of
+  `DecimalFormat`.
 * **`real()` and `floor()` inherit the 32-bit range**, since they go through
   `int()`, whose Java cast saturates.
+* **Real `//` with an enormous quotient** can differ by one, but only where
+  HW02 is itself inexact: above 2^53 Python computes float `//` through a
+  rounded division, while `_rdm` computes the true quotient.
 * **Diagnostics cannot be reproduced at run time.**  JCoCo offers no standard
   error stream, so the compiled program stays silent where HW02 writes a
   warning; the compiler emits the equivalent diagnostics itself, at compile
@@ -250,10 +285,15 @@ mixed-type operation, and an empty operand stack at every `RETURN_VALUE`.
 
 All nine assertions pass on the real VM (JCoCo built from `kentdlee/JCoCo`,
 with the JavaFX turtle module stubbed out, which is irrelevant here).
-`tools/fuzz.py` extends the comparison to random programs: of 400 programs
-mixing both types, all six operators, both casts, nested negations, zero
-divisors, undefined names, and type errors, 396 agree exactly and 4 differ only
-in the documented real-printing or last-bit cases.
+`tools/fuzz.py` extends the comparison to random programs: of 300 programs run
+against the real VM — mixing both types, all six operators, both casts, nested
+negations, zero divisors, undefined names, and type errors — 299 agree exactly
+and 1 differs only in the documented real-printing case.
+
+The compiler exits 2, rather than 0, when the program it has written is known
+not to assemble (an integer constant outside the machine's range); warnings
+about values it holds only approximately leave the status 0, since those
+programs do assemble and run.  `tests/badconst.calc` asserts this.
 
 | Sample | Exercises |
 |---|---|
@@ -265,7 +305,8 @@ in the documented real-printing or last-bit cases.
 | `t07` | Every sign combination of `//` and `%`, for integers and reals — the floored-vs-truncated regression. |
 | `t08` | Zero divisors of all six kinds, each followed by more statements, checking that no output is lost. |
 | `t09` | Real division, including exact whole-number dividends, and exact real constants. |
-| `vmlimits` | The divergences above: recorded for inspection, not asserted. |
+| `vmlimits` | Every divergence above, in order, with the aborting overflow last so that it masks nothing; recorded for inspection, not asserted. |
+| `badconst` | An integer constant the machine cannot hold: asserts the diagnostic and the exit status. |
 
 ## Resources
 

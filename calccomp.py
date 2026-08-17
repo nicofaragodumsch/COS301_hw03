@@ -664,42 +664,221 @@ def build_floor():
     return f
 
 
-def build_rdivf():
-    """_rdivf/2: a // b for reals, which HW02 computes as the floor of a / b.
-    A zero divisor needs no test: _rdiv already yields 0.0, whose floor is 0.0.
-    """
-    f = Function("_rdivf", 2)
-    f.emit("LOAD_GLOBAL", f.glob("_rfloor"))
-    f.emit("LOAD_GLOBAL", f.glob("_rdiv"))
-    f.emit("LOAD_FAST", f.local("a"))
-    f.emit("LOAD_FAST", f.local("b"))
-    f.emit("CALL_FUNCTION", 2)
-    f.emit("CALL_FUNCTION", 1)
+def build_rabs():
+    """_rabs/1: the magnitude of a real."""
+    f = Function("_rabs", 1)
+    x = f.local("x")
+    f.compare_zero(x, 0, True)
+    f.emit("POP_JUMP_IF_FALSE", "abs01")
+    f.ratio(-1)
+    f.emit("LOAD_FAST", x)
+    f.emit("BINARY_MULTIPLY")
+    f.emit("RETURN_VALUE")
+    f.label("abs01")
+    f.emit("LOAD_FAST", x)
     f.emit("RETURN_VALUE")
     return f
 
 
-def build_rmod():
-    """_rmod/2: a % b for reals, as a - b * (a // b).
+def build_rdm():
+    """_rdm/3: shift-and-subtract division of reals.  A >= 0 and B > 0; the
+    third argument selects the truncated quotient (0) or the remainder (1).
 
-    The machine does have a real __mod__, but it truncates and casts the
-    quotient to a 32-bit integer on the way, so it is unusable here.
+    This is long division in binary.  The divisor is doubled until it reaches
+    the dividend, then halved back down, subtracted whenever it fits, with the
+    corresponding power of two accumulated into the quotient.  Every step is
+    exact: scaling by two neither rounds nor loses bits, and each subtraction
+    happens only when d <= r < 2d, where the difference is exactly
+    representable.  So the remainder is HW02's remainder bit for bit -- which
+    the obvious a - b * (a // b) is not, because both of those operations
+    round.
+
+    The loop runs once per power of two between the operands, at most about
+    2100 times for the machine's extreme exponents and typically fewer than 60.
+    """
+    f = Function("_rdm", 3)
+    a, b, want = f.local("A"), f.local("B"), f.local("want")
+    d, s, r, q = f.local("d"), f.local("s"), f.local("r"), f.local("q")
+
+    f.emit("LOAD_FAST", b)
+    f.emit("STORE_FAST", d)
+    f.ratio(1)
+    f.emit("STORE_FAST", s)
+
+    f.label("dm00")  # scale the divisor up to the dividend's magnitude
+    f.emit("LOAD_FAST", d)
+    f.ratio(2)
+    f.emit("BINARY_MULTIPLY")
+    f.emit("LOAD_FAST", a)
+    f.emit("COMPARE_OP", 1)  # d * 2 <= A ?
+    f.emit("POP_JUMP_IF_FALSE", "dm01")
+    f.emit("LOAD_FAST", d)
+    f.ratio(2)
+    f.emit("BINARY_MULTIPLY")
+    f.emit("STORE_FAST", d)
+    f.emit("LOAD_FAST", s)
+    f.ratio(2)
+    f.emit("BINARY_MULTIPLY")
+    f.emit("STORE_FAST", s)
+    f.emit("JUMP_ABSOLUTE", "dm00")
+
+    f.label("dm01")
+    f.emit("LOAD_FAST", a)
+    f.emit("STORE_FAST", r)
+    f.ratio(0)
+    f.emit("STORE_FAST", q)
+
+    f.label("dm02")  # subtract where it fits, halving all the way down
+    f.emit("LOAD_FAST", r)
+    f.emit("LOAD_FAST", d)
+    f.emit("COMPARE_OP", 5)  # r >= d ?
+    f.emit("POP_JUMP_IF_FALSE", "dm03")
+    f.emit("LOAD_FAST", r)
+    f.emit("LOAD_FAST", d)
+    f.emit("BINARY_SUBTRACT")  # exact: d <= r < 2d
+    f.emit("STORE_FAST", r)
+    f.emit("LOAD_FAST", q)
+    f.emit("LOAD_FAST", s)
+    f.emit("BINARY_ADD")
+    f.emit("STORE_FAST", q)
+    f.label("dm03")
+    f.emit("LOAD_FAST", s)
+    f.ratio(1)
+    f.emit("COMPARE_OP", 2)  # s == 1: the units place is done
+    f.emit("POP_JUMP_IF_TRUE", "dm04")
+    f.emit("LOAD_FAST", d)
+    f.ratio(1, 2)
+    f.emit("BINARY_MULTIPLY")
+    f.emit("STORE_FAST", d)
+    f.emit("LOAD_FAST", s)
+    f.ratio(1, 2)
+    f.emit("BINARY_MULTIPLY")
+    f.emit("STORE_FAST", s)
+    f.emit("JUMP_ABSOLUTE", "dm02")
+
+    f.label("dm04")
+    f.compare_zero(want, 2, False)
+    f.emit("POP_JUMP_IF_TRUE", "dm05")
+    f.emit("LOAD_FAST", r)
+    f.emit("RETURN_VALUE")
+    f.label("dm05")
+    f.emit("LOAD_FAST", q)
+    f.emit("RETURN_VALUE")
+    return f
+
+
+def call_rdm(f, magnitudes, want):
+    """Emit a call on _rdm with the two magnitude locals and a selector."""
+    f.emit("LOAD_GLOBAL", f.glob("_rdm"))
+    for slot in magnitudes:
+        f.emit("LOAD_FAST", slot)
+    f.emit("LOAD_CONST", f.const(want))
+    f.emit("CALL_FUNCTION", 3)
+
+
+def store_magnitudes(f, a, b, big_a, big_b):
+    """big_a, big_b := |a|, |b|."""
+    for source, target in ((a, big_a), (b, big_b)):
+        f.emit("LOAD_GLOBAL", f.glob("_rabs"))
+        f.emit("LOAD_FAST", source)
+        f.emit("CALL_FUNCTION", 1)
+        f.emit("STORE_FAST", target)
+
+
+def build_rmod():
+    """_rmod/2: a % b for reals, with the sign of b, as HW02 computes it.
+
+    The exact remainder comes from _rdm; only its sign needs adjusting, in the
+    same way as for integers.
     """
     f = Function("_rmod", 2)
     a, b = f.local("a"), f.local("b")
+    big_a, big_b, r = f.local("A"), f.local("B"), f.local("r")
 
     f.compare_zero(b, 2, True)
-    f.emit("POP_JUMP_IF_TRUE", "rmd01")
-    f.emit("LOAD_FAST", a)
-    f.emit("LOAD_FAST", b)
-    f.emit("LOAD_GLOBAL", f.glob("_rdivf"))
-    f.emit("LOAD_FAST", a)
-    f.emit("LOAD_FAST", b)
-    f.emit("CALL_FUNCTION", 2)
+    f.emit("POP_JUMP_IF_TRUE", "rmd05")  # b == 0: HW02 yields 0.0
+    store_magnitudes(f, a, b, big_a, big_b)
+    call_rdm(f, (big_a, big_b), 1)
+    f.emit("STORE_FAST", r)
+    f.compare_zero(r, 2, True)
+    f.emit("POP_JUMP_IF_TRUE", "rmd06")  # a zero remainder takes b's sign
+    f.compare_zero(a, 0, True)
+    f.emit("POP_JUMP_IF_FALSE", "rmd00")
+    f.ratio(-1)  # the truncating remainder takes the sign of the dividend
+    f.emit("LOAD_FAST", r)
     f.emit("BINARY_MULTIPLY")
-    f.emit("BINARY_SUBTRACT")
-    f.emit("RETURN_VALUE")
+    f.emit("STORE_FAST", r)
+    f.label("rmd00")
+    f.compare_zero(r, 2, True)
+    f.emit("POP_JUMP_IF_TRUE", "rmd04")  # exact: no sign to correct
+    f.compare_zero(r, 0, True)
+    f.emit("POP_JUMP_IF_FALSE", "rmd01")
+    f.compare_zero(b, 4, True)  # r < 0: correct if b > 0
+    f.emit("POP_JUMP_IF_TRUE", "rmd02")
+    f.emit("JUMP_ABSOLUTE", "rmd04")
     f.label("rmd01")
+    f.compare_zero(b, 0, True)  # r > 0: correct if b < 0
+    f.emit("POP_JUMP_IF_FALSE", "rmd04")
+    f.label("rmd02")
+    f.emit("LOAD_FAST", r)
+    f.emit("LOAD_FAST", b)
+    f.emit("BINARY_ADD")
+    f.emit("STORE_FAST", r)
+    f.label("rmd04")
+    f.emit("LOAD_FAST", r)
+    f.emit("RETURN_VALUE")
+    f.label("rmd05")
+    f.ratio(0)
+    f.emit("RETURN_VALUE")
+    f.label("rmd06")  # 0.0 * b is the zero with b's sign, as HW02 returns
+    f.ratio(0)
+    f.emit("LOAD_FAST", b)
+    f.emit("BINARY_MULTIPLY")
+    f.emit("RETURN_VALUE")
+    return f
+
+
+def build_rdivf():
+    """_rdivf/2: a // b for reals, rounded toward minus infinity.
+
+    _rdm gives the magnitude of the truncated quotient exactly; when the
+    operands' signs differ the quotient is negated, and lowered by one if the
+    division left a remainder.
+    """
+    f = Function("_rdivf", 2)
+    a, b = f.local("a"), f.local("b")
+    big_a, big_b, q = f.local("A"), f.local("B"), f.local("q")
+
+    f.compare_zero(b, 2, True)
+    f.emit("POP_JUMP_IF_TRUE", "rfd05")  # b == 0: HW02 yields 0.0
+    store_magnitudes(f, a, b, big_a, big_b)
+    call_rdm(f, (big_a, big_b), 0)
+    f.emit("STORE_FAST", q)
+    f.compare_zero(a, 0, True)
+    f.emit("POP_JUMP_IF_FALSE", "rfd01")
+    f.compare_zero(b, 0, True)  # a < 0: signs differ unless b < 0 too
+    f.emit("POP_JUMP_IF_FALSE", "rfd02")
+    f.emit("JUMP_ABSOLUTE", "rfd04")
+    f.label("rfd01")
+    f.compare_zero(b, 0, True)  # a >= 0: signs differ if b < 0
+    f.emit("POP_JUMP_IF_FALSE", "rfd04")
+    f.label("rfd02")  # signs differ: negate, then floor
+    f.ratio(-1)
+    f.emit("LOAD_FAST", q)
+    f.emit("BINARY_MULTIPLY")
+    f.emit("STORE_FAST", q)
+    call_rdm(f, (big_a, big_b), 1)
+    f.ratio(0)
+    f.emit("COMPARE_OP", 3)  # remainder != 0: the quotient was truncated up
+    f.emit("POP_JUMP_IF_FALSE", "rfd04")
+    f.emit("LOAD_FAST", q)
+    f.ratio(1)
+    f.emit("BINARY_SUBTRACT")
+    f.emit("STORE_FAST", q)
+    f.label("rfd04")
+    f.emit("LOAD_FAST", q)
+    f.emit("RETURN_VALUE")
+    f.label("rfd05")
     f.ratio(0)
     f.emit("RETURN_VALUE")
     return f
@@ -710,10 +889,12 @@ LIBRARY = {  # name -> (builder, functions it calls)
     "_idiv": (build_idiv, ("_imod",)),
     "_ddiv": (build_ddiv, ()),
     "_rdiv": (build_rdiv, ()),
+    "_rabs": (build_rabs, ()),
+    "_rdm": (build_rdm, ()),
     "_rfloor": (build_rfloor, ()),
     "_floor": (build_floor, ("_rfloor",)),
-    "_rdivf": (build_rdivf, ("_rfloor", "_rdiv")),
-    "_rmod": (build_rmod, ("_rdivf",)),
+    "_rdivf": (build_rdivf, ("_rabs", "_rdm")),
+    "_rmod": (build_rmod, ("_rabs", "_rdm")),
 }
 
 
@@ -747,6 +928,7 @@ class Compiler:
     def __init__(self):
         self.main = Function("main", 0)
         self.needed = []  # support functions to emit, in order of first need
+        self.unassemblable = False  # emitted something JCoCo cannot assemble
 
     def need(self, name):
         """Record that `name` -- and whatever it calls -- must be emitted."""
@@ -800,6 +982,7 @@ class Compiler:
                 print("warning: integer constant %d is outside JCoCo's 32-bit "
                       "integer range; the assembler will reject it" % value,
                       file=sys.stderr)
+                self.unassemblable = True
             f.emit("LOAD_CONST", f.const(value))
             return
 
@@ -963,10 +1146,16 @@ def parse_program(source_lines):
 
 
 def main():
+    """Exit 0 normally, or 2 when the program written out is known not to
+    assemble, so that a script driving the compiler can tell the difference.
+    Warnings about values this machine holds only approximately do not change
+    the status: those programs do assemble and run."""
     program = analyze(parse_program(sys.stdin))
-    functions = Compiler().compile(program)
+    compiler = Compiler()
+    functions = compiler.compile(program)
     sys.stdout.write(format_program(functions))
+    return 2 if compiler.unassemblable else 0
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())
