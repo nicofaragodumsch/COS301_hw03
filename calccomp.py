@@ -8,12 +8,25 @@
 #                  p. 63) extended, as in HW02, with real numbers, scientific
 #                  notation, div (//), mod (%), real() and floor().
 # Output (stdout): a JCoCo assembly language program that, when executed with
-#                  the coco command, writes exactly what the HW02 interpreter
-#                  writes on standard output for the same input.
+#                  the coco command, writes on standard output what the HW02
+#                  interpreter writes for the same input.  This holds exactly
+#                  for the required integer language, and for the extended
+#                  language except where the JCoCo machine cannot represent or
+#                  print a real number as Python does: its integers are 32-bit,
+#                  its reals print through DecimalFormat, and it provides no
+#                  division for reals.  The README lists every such case, and
+#                  tests/vmlimits.calc collects them.
 # Diagnostics (stderr): messages for undefined names, type mismatches and
-#                  syntax errors, worded as in HW02.  They are emitted at
-#                  compile time rather than at run time; standard output, which
-#                  is what must agree with HW02, is unaffected.
+#                  syntax errors, worded as in HW02, plus warnings about values
+#                  this machine cannot hold.  They are emitted at compile time
+#                  rather than at run time -- JCoCo has no standard error
+#                  stream -- so standard output, which is what must agree with
+#                  HW02, is unaffected.
+#
+# Several source operations have no correct single-instruction translation on
+# this machine (integer div/mod truncate, reals cannot divide, a zero divisor
+# ends the run, real literals are narrowed to 32 bits).  Section 5 explains
+# each and generates the run-time support it needs.
 #
 # Organization (the usual compiler phases, one section each):
 #     1. lexical analysis     -- taken unchanged from HW02's calc.py
@@ -306,18 +319,54 @@ def analyze(program):
 #    JCoCo is a stack machine, so an expression is compiled by the usual
 #    post-order walk: code for the left operand, code for the right operand,
 #    then the instruction, leaving the value on the operand stack.
+#
+#    Three of the source language's operations cannot be compiled to a single
+#    instruction, because the JCoCo virtual machine does not implement the
+#    Python semantics HW02 has (see the README, "Adapting to the target VM"):
+#
+#      * `BINARY_FLOOR_DIVIDE` and `BINARY_MODULO` on integers truncate toward
+#        zero, so they disagree with HW02 whenever exactly one operand is
+#        negative;
+#      * the machine's real numbers implement no division at all, neither
+#        `__truediv__` nor `__floordiv__`, so `/` and `//` on reals raise a
+#        TypeError at run time;
+#      * a zero divisor raises an exception and ends the run, whereas HW02
+#        substitutes a zero for the offending expression and carries on, so
+#        every later statement's output would be lost.
+#
+#    The compiler therefore emits a small run-time support library (section 5b)
+#    and calls into it for `/`, `//` and `%`.  Each support function is
+#    generated only if the program uses it.  They are written to be correct on
+#    a machine whose `//` and `%` are floored as well as on one whose are
+#    truncated, so the same compiler serves either build of JCoCo.
+#
+#    Real constants are likewise not emitted as literals: the JCoCo assembler
+#    reads them with 32-bit `Float.parseFloat`, which would silently perturb
+#    every real in the program (3.14159 becomes 3.141590118408203).  Instead a
+#    real constant is materialized as the quotient of two exact integers, which
+#    the machine's integer division computes as a correctly rounded double --
+#    the same value HW02's lexer produces.
 # -----------------------------------------------------------------------------
 
-BINOP_INSTR = {
+INT_MAX = 2 ** 31 - 1  # JCoCo integers are 32-bit
+MAX_EXACT_TEN = 22  # 10**22 is the largest power of ten exact as a double
+
+DIRECT_INSTR = {  # operators that are one instruction for either operand type
     "+": "BINARY_ADD",
     "-": "BINARY_SUBTRACT",
     "*": "BINARY_MULTIPLY",
-    "/": "BINARY_TRUE_DIVIDE",
-    "//": "BINARY_FLOOR_DIVIDE",
-    "%": "BINARY_MODULO",
 }
 
-FLOOR_HELPER = "_floor"  # name of the generated run-time support function
+HELPER_FOR = {  # (operator, operand type) -> run-time support function
+    ("/", int): "_ddiv",
+    ("/", float): "_rdiv",
+    ("//", int): "_idiv",
+    ("//", float): "_rdivf",
+    ("%", int): "_imod",
+    ("%", float): "_rmod",
+}
+
+FLOOR_HELPER = "_floor"  # floor() of a real
 
 
 class Pool:
@@ -357,7 +406,7 @@ class Function:
     def const(self, value):
         # int 1 and float 1.0 are equal and hash alike in Python but are
         # different JCoCo constants, so the pool is keyed by type and by the
-        # printed form (which also keeps 0.0 and -0.0 apart).
+        # printed form.
         return self.constants.index(value, key=(type(value).__name__, repr(value)))
 
     def local(self, name):
@@ -375,17 +424,354 @@ class Function:
         """Attach a label to the next instruction emitted."""
         self.code.append((name, None, None))
 
+    def blank(self):
+        self.code.append((None, None, None))
+
+    # -- small idioms used by both the code generator and the library --------
+
+    def push_int(self, value):
+        """Push an integer.  Constants are unsigned in the grammar, so a
+        negative one is a subtraction from zero."""
+        if value < 0:
+            self.emit("LOAD_CONST", self.const(0))
+            self.emit("LOAD_CONST", self.const(-value))
+            self.emit("BINARY_SUBTRACT")
+        else:
+            self.emit("LOAD_CONST", self.const(value))
+
+    def ratio(self, numerator, denominator=1):
+        """Push the real number numerator/denominator.
+
+        Integer division is the only division this machine performs correctly,
+        and for operands it can represent exactly it is the IEEE quotient --
+        which, for a decimal numeral's mantissa and power of ten, is exactly
+        the double HW02's lexer builds.  It is also the only way to obtain a
+        real constant at all without going through the assembler's 32-bit
+        Float.parseFloat.
+        """
+        self.push_int(numerator)
+        self.emit("LOAD_CONST", self.const(denominator))
+        self.emit("BINARY_TRUE_DIVIDE")
+
+    def power_of_ten(self, k):
+        """Push 10**k as a real, exactly (k <= MAX_EXACT_TEN).
+
+        Powers of ten up to 10**22 are exactly representable as doubles, and a
+        product of exact doubles whose true product is exact is itself exact,
+        so the factors below introduce no rounding.
+        """
+        parts = []
+        while k > 9:  # each factor must fit in a 32-bit constant
+            parts.append(9)
+            k -= 9
+        parts.append(k)
+        self.ratio(10 ** parts[0])
+        for part in parts[1:]:
+            self.ratio(10 ** part)
+            self.emit("BINARY_MULTIPLY")
+
+    def compare_zero(self, slot, opname, is_real):
+        """Compare the local in `slot` with a zero of its own type."""
+        self.emit("LOAD_FAST", slot)
+        if is_real:
+            self.ratio(0)
+        else:
+            self.emit("LOAD_CONST", self.const(0))
+        self.emit("COMPARE_OP", opname)
+
+
+# -----------------------------------------------------------------------------
+# 5b. The run-time support library.
+#
+#     Each builder returns a complete JCoCo function; `NEEDS` lists the other
+#     support functions it calls.  Only the reachable ones are emitted.
+#
+#     Comparison opnames used below: 0 is <, 2 is ==, 4 is >.
+# -----------------------------------------------------------------------------
+
+
+def build_imod():
+    """_imod/2: a % b with the sign of b (HW02's, i.e. Python's, modulo).
+
+    The machine's BINARY_MODULO leaves the sign of the dividend, so when the
+    remainder is not zero and its sign differs from the divisor's, the divisor
+    is added.  On a machine whose BINARY_MODULO is already floored the two
+    tests below can never both succeed, so the same code is correct there.
+    """
+    f = Function("_imod", 2)
+    a, b = f.local("a"), f.local("b")
+    r = f.local("r")
+
+    f.compare_zero(b, 2, False)
+    f.emit("POP_JUMP_IF_TRUE", "mod04")  # b == 0: HW02 yields zero
+    f.emit("LOAD_FAST", a)
+    f.emit("LOAD_FAST", b)
+    f.emit("BINARY_MODULO")
+    f.emit("STORE_FAST", r)
+    f.compare_zero(r, 2, False)
+    f.emit("POP_JUMP_IF_TRUE", "mod03")  # exact: no correction, and no sign
+    f.compare_zero(r, 0, False)
+    f.emit("POP_JUMP_IF_FALSE", "mod01")
+    f.compare_zero(b, 4, False)  # r < 0: correct if b > 0
+    f.emit("POP_JUMP_IF_TRUE", "mod02")
+    f.emit("JUMP_ABSOLUTE", "mod03")
+    f.label("mod01")
+    f.compare_zero(b, 0, False)  # r > 0: correct if b < 0
+    f.emit("POP_JUMP_IF_FALSE", "mod03")
+    f.label("mod02")
+    f.emit("LOAD_FAST", r)
+    f.emit("LOAD_FAST", b)
+    f.emit("BINARY_ADD")
+    f.emit("STORE_FAST", r)
+    f.label("mod03")
+    f.emit("LOAD_FAST", r)
+    f.emit("RETURN_VALUE")
+    f.label("mod04")
+    f.emit("LOAD_CONST", f.const(0))
+    f.emit("RETURN_VALUE")
+    return f
+
+
+def build_idiv():
+    """_idiv/2: a // b rounded toward minus infinity, as HW02 rounds it.
+
+    Once the floored remainder is known, a - (a % b) is an exact multiple of b,
+    so dividing it by b gives the floored quotient however the machine's
+    integer division rounds.
+    """
+    f = Function("_idiv", 2)
+    a, b = f.local("a"), f.local("b")
+
+    f.compare_zero(b, 2, False)
+    f.emit("POP_JUMP_IF_TRUE", "div01")  # b == 0: HW02 yields zero
+    f.emit("LOAD_FAST", a)
+    f.emit("LOAD_GLOBAL", f.glob("_imod"))
+    f.emit("LOAD_FAST", a)
+    f.emit("LOAD_FAST", b)
+    f.emit("CALL_FUNCTION", 2)
+    f.emit("BINARY_SUBTRACT")  # a - (a % b)
+    f.emit("LOAD_FAST", b)
+    f.emit("BINARY_FLOOR_DIVIDE")  # exact division: rounding is irrelevant
+    f.emit("RETURN_VALUE")
+    f.label("div01")
+    f.emit("LOAD_CONST", f.const(0))
+    f.emit("RETURN_VALUE")
+    return f
+
+
+def build_ddiv():
+    """_ddiv/2: a / b for integers.  The instruction is right (it yields a
+    real, as HW02 does); only HW02's recovery from a zero divisor is missing."""
+    f = Function("_ddiv", 2)
+    a, b = f.local("a"), f.local("b")
+
+    f.compare_zero(b, 2, False)
+    f.emit("POP_JUMP_IF_TRUE", "ddv01")
+    f.emit("LOAD_FAST", a)
+    f.emit("LOAD_FAST", b)
+    f.emit("BINARY_TRUE_DIVIDE")
+    f.emit("RETURN_VALUE")
+    f.label("ddv01")
+    f.ratio(0)  # HW02 yields 0.0 for a failed '/'
+    f.emit("RETURN_VALUE")
+    return f
+
+
+def build_rdiv():
+    """_rdiv/2: a / b for reals.
+
+    The machine's reals have no division at all, but its *integers* divide
+    correctly, and integer-by-real division is a correctly rounded double.  So
+    when the dividend is a whole number the machine's integer range can hold,
+    the quotient is obtained exactly by converting the dividend.  (The
+    conversion saturates rather than wrapping, so comparing it back with the
+    dividend also rejects anything out of range.)
+
+    Otherwise the quotient must be formed as a * (1/b), and the extra rounding
+    of the reciprocal can move the last bit of the result: about one real
+    division in six differs from HW02's in that bit.  No sequence of this
+    machine's instructions can do better, since correctly rounded division of
+    two arbitrary doubles is exactly the operation it lacks.  See the README.
+    """
+    f = Function("_rdiv", 2)
+    a, b = f.local("a"), f.local("b")
+    t = f.local("t")
+
+    f.compare_zero(b, 2, True)
+    f.emit("POP_JUMP_IF_TRUE", "rdv02")  # b == 0: HW02 yields 0.0
+    f.emit("LOAD_GLOBAL", f.glob("int"))
+    f.emit("LOAD_FAST", a)
+    f.emit("CALL_FUNCTION", 1)
+    f.emit("STORE_FAST", t)  # t = the truncated dividend
+    f.emit("LOAD_FAST", t)
+    f.emit("LOAD_CONST", f.const(1))
+    f.emit("BINARY_TRUE_DIVIDE")  # back to a real, exactly
+    f.emit("LOAD_FAST", a)
+    f.emit("COMPARE_OP", 2)  # was the dividend a whole number in range?
+    f.emit("POP_JUMP_IF_FALSE", "rdv01")
+    f.emit("LOAD_FAST", t)  # yes: an exact integer-by-real division
+    f.emit("LOAD_FAST", b)
+    f.emit("BINARY_TRUE_DIVIDE")
+    f.emit("RETURN_VALUE")
+    f.label("rdv01")
+    f.emit("LOAD_FAST", a)  # no: a * (1/b), the best available
+    f.emit("LOAD_CONST", f.const(1))
+    f.emit("LOAD_FAST", b)
+    f.emit("BINARY_TRUE_DIVIDE")
+    f.emit("BINARY_MULTIPLY")
+    f.emit("RETURN_VALUE")
+    f.label("rdv02")
+    f.ratio(0)
+    f.emit("RETURN_VALUE")
+    return f
+
+
+def build_rfloor():
+    """_rfloor/1: the floor of a real, as a real."""
+    f = Function("_rfloor", 1)
+    x = f.local("x")
+    t = f.local("t")
+
+    f.emit("LOAD_GLOBAL", f.glob("int"))
+    f.emit("LOAD_FAST", x)
+    f.emit("CALL_FUNCTION", 1)  # truncates toward zero
+    f.emit("LOAD_CONST", f.const(1))
+    f.emit("BINARY_TRUE_DIVIDE")  # back to a real, exactly
+    f.emit("STORE_FAST", t)
+    f.emit("LOAD_FAST", t)
+    f.emit("LOAD_FAST", x)
+    f.emit("COMPARE_OP", 4)  # t > x: x was negative and not whole
+    f.emit("POP_JUMP_IF_FALSE", "rfl01")
+    f.emit("LOAD_FAST", t)
+    f.ratio(1)
+    f.emit("BINARY_SUBTRACT")
+    f.emit("STORE_FAST", t)
+    f.label("rfl01")
+    f.emit("LOAD_FAST", t)
+    f.emit("RETURN_VALUE")
+    return f
+
+
+def build_floor():
+    """_floor/1: floor() of a real, as an integer -- HW02's math.floor."""
+    f = Function("_floor", 1)
+    f.emit("LOAD_GLOBAL", f.glob("int"))
+    f.emit("LOAD_GLOBAL", f.glob("_rfloor"))
+    f.emit("LOAD_FAST", f.local("x"))
+    f.emit("CALL_FUNCTION", 1)
+    f.emit("CALL_FUNCTION", 1)
+    f.emit("RETURN_VALUE")
+    return f
+
+
+def build_rdivf():
+    """_rdivf/2: a // b for reals, which HW02 computes as the floor of a / b.
+    A zero divisor needs no test: _rdiv already yields 0.0, whose floor is 0.0.
+    """
+    f = Function("_rdivf", 2)
+    f.emit("LOAD_GLOBAL", f.glob("_rfloor"))
+    f.emit("LOAD_GLOBAL", f.glob("_rdiv"))
+    f.emit("LOAD_FAST", f.local("a"))
+    f.emit("LOAD_FAST", f.local("b"))
+    f.emit("CALL_FUNCTION", 2)
+    f.emit("CALL_FUNCTION", 1)
+    f.emit("RETURN_VALUE")
+    return f
+
+
+def build_rmod():
+    """_rmod/2: a % b for reals, as a - b * (a // b).
+
+    The machine does have a real __mod__, but it truncates and casts the
+    quotient to a 32-bit integer on the way, so it is unusable here.
+    """
+    f = Function("_rmod", 2)
+    a, b = f.local("a"), f.local("b")
+
+    f.compare_zero(b, 2, True)
+    f.emit("POP_JUMP_IF_TRUE", "rmd01")
+    f.emit("LOAD_FAST", a)
+    f.emit("LOAD_FAST", b)
+    f.emit("LOAD_GLOBAL", f.glob("_rdivf"))
+    f.emit("LOAD_FAST", a)
+    f.emit("LOAD_FAST", b)
+    f.emit("CALL_FUNCTION", 2)
+    f.emit("BINARY_MULTIPLY")
+    f.emit("BINARY_SUBTRACT")
+    f.emit("RETURN_VALUE")
+    f.label("rmd01")
+    f.ratio(0)
+    f.emit("RETURN_VALUE")
+    return f
+
+
+LIBRARY = {  # name -> (builder, functions it calls)
+    "_imod": (build_imod, ()),
+    "_idiv": (build_idiv, ("_imod",)),
+    "_ddiv": (build_ddiv, ()),
+    "_rdiv": (build_rdiv, ()),
+    "_rfloor": (build_rfloor, ()),
+    "_floor": (build_floor, ("_rfloor",)),
+    "_rdivf": (build_rdivf, ("_rfloor", "_rdiv")),
+    "_rmod": (build_rmod, ("_rdivf",)),
+}
+
+
+# -----------------------------------------------------------------------------
+# 5c. Real constants.
+# -----------------------------------------------------------------------------
+
+
+def decimal_parts(value):
+    """Return (mantissa, exponent) with mantissa * 10**exponent exactly
+    `value`, using as few mantissa digits as possible, or None for an infinity
+    or a NaN.
+
+    repr(value) round-trips, so its digits denote `value` exactly; normalizing
+    drops trailing zeros, which is what lets 1e10 and 999999999.0 be expressed
+    with a mantissa the machine's 32-bit integers can hold.
+    """
+    sign, digits, exponent = Decimal(repr(value)).normalize().as_tuple()
+    if not isinstance(exponent, int):  # 'F' for infinity, 'n' for NaN
+        return None
+    mantissa = int("".join(str(d) for d in digits))
+    return (-mantissa if sign else mantissa), exponent
+
+
+# -----------------------------------------------------------------------------
+# 5d. The code generator proper.
+# -----------------------------------------------------------------------------
+
 
 class Compiler:
     def __init__(self):
         self.main = Function("main", 0)
-        self.needs_floor_helper = False
+        self.needed = []  # support functions to emit, in order of first need
+
+    def need(self, name):
+        """Record that `name` -- and whatever it calls -- must be emitted."""
+        if name not in self.needed:
+            self.needed.append(name)
+            if name == "_rdiv":  # say so once, not once per occurrence
+                print("note: JCoCo provides no division for real numbers; the "
+                      "substitute emitted here is exact when the dividend is a "
+                      "whole number and may differ in the last bit otherwise",
+                      file=sys.stderr)
+            for dependency in LIBRARY[name][1]:
+                self.need(dependency)
+        return name
+
+    def call_helper(self, name, f, operands):
+        f.emit("LOAD_GLOBAL", f.glob(self.need(name)))
+        for operand in operands:
+            self.gen_expr(operand, f)
+        f.emit("CALL_FUNCTION", len(operands))
 
     # -- expressions ---------------------------------------------------------
 
     def gen_expr(self, e, f):
         if isinstance(e, Num):
-            f.emit("LOAD_CONST", f.const(e.value))
+            self.gen_const(e.value, f)
 
         elif isinstance(e, Var):
             f.emit("LOAD_FAST", f.local(e.name))
@@ -394,9 +780,13 @@ class Compiler:
             self.gen_neg(e, f)
 
         elif isinstance(e, BinOp):
-            self.gen_expr(e.left, f)  # left operand first: TOS1 op TOS
-            self.gen_expr(e.right, f)
-            f.emit(BINOP_INSTR[e.op])
+            if e.op in DIRECT_INSTR:
+                self.gen_expr(e.left, f)  # left operand first: TOS1 op TOS
+                self.gen_expr(e.right, f)
+                f.emit(DIRECT_INSTR[e.op])
+            else:  # '/', '//' and '%' go through the support library
+                self.call_helper(HELPER_FOR[(e.op, e.left.type)], f,
+                                 (e.left, e.right))
 
         elif isinstance(e, Cast):
             self.gen_cast(e, f)
@@ -404,43 +794,79 @@ class Compiler:
         else:  # pragma: no cover
             raise AssertionError("unknown expression node")
 
+    def gen_const(self, value, f):
+        if isinstance(value, int):
+            if abs(value) > INT_MAX:
+                print("warning: integer constant %d is outside JCoCo's 32-bit "
+                      "integer range; the assembler will reject it" % value,
+                      file=sys.stderr)
+            f.emit("LOAD_CONST", f.const(value))
+            return
+
+        parts = decimal_parts(value)
+        if parts is None:  # an infinity or a NaN: no JCoCo literal exists
+            print("warning: real constant %r cannot be represented by JCoCo; "
+                  "using 0.0" % value, file=sys.stderr)
+            f.ratio(0)
+            return
+
+        mantissa, exponent = parts
+        if abs(mantissa) <= INT_MAX and abs(exponent) <= MAX_EXACT_TEN:
+            # Exactly one rounding occurs, of the true decimal value, so the
+            # result is the same double HW02's lexer produces.
+            if exponent == 0:
+                f.ratio(mantissa)
+            elif exponent < 0:
+                scale = 10 ** -exponent
+                if scale <= INT_MAX:
+                    f.ratio(mantissa, scale)  # integer by integer
+                else:
+                    f.push_int(mantissa)  # integer by exact real
+                    f.power_of_ten(-exponent)
+                    f.emit("BINARY_TRUE_DIVIDE")
+            else:
+                f.ratio(mantissa)  # exact real times exact power of ten
+                f.power_of_ten(exponent)
+                f.emit("BINARY_MULTIPLY")
+            return
+
+        # More significant digits, or a wider exponent, than the machine's
+        # integers can carry.  Fall back on a literal, which the assembler
+        # narrows to 32 bits, and say so.
+        print("warning: real constant %r needs more precision than JCoCo's "
+              "32-bit assembler provides; output may differ" % value,
+              file=sys.stderr)
+        f.emit("LOAD_CONST", f.const(value))
+
     def gen_neg(self, e, f):
-        """JCoCo has no unary-negation instruction, and constants are unsigned,
-        so a negation must be built from a binary operator and zero or one."""
+        """JCoCo has no unary-negation instruction and its constants are
+        unsigned, so a negation is built from a binary operator."""
         if e.type is int:
             f.emit("LOAD_CONST", f.const(0))  # -i is 0 - i
             self.gen_expr(e.operand, f)
             f.emit("BINARY_SUBTRACT")
         else:
-            # 0.0 - r would turn -0.0 into +0.0, so real negation goes through
-            # a multiplication by -1.0, which is exact for both signed zeros.
-            f.emit("LOAD_CONST", f.const(0.0))
-            f.emit("LOAD_CONST", f.const(1.0))
-            f.emit("BINARY_SUBTRACT")  # -1.0
+            # 0.0 - r would turn -0.0 into +0.0, so real negation is a
+            # multiplication by -1.0, which is exact for both signed zeros.
+            f.ratio(-1)
             self.gen_expr(e.operand, f)
             f.emit("BINARY_MULTIPLY")
-        # In both cases the constant has the type of the operand, so that the
-        # instruction never sees operands of two different types.
+        # In both cases the constant has the type of the operand, so that no
+        # instruction is ever applied to operands of two different types.
 
     def gen_cast(self, e, f):
-        operand_type = e.operand.type
         if e.kind == "real":
-            if operand_type is float:
+            if e.operand.type is float:
                 self.gen_expr(e.operand, f)  # real(r) is the identity
             else:
                 f.emit("LOAD_GLOBAL", f.glob("float"))
                 self.gen_expr(e.operand, f)
                 f.emit("CALL_FUNCTION", 1)
         else:  # floor
-            if operand_type is int:
+            if e.operand.type is int:
                 self.gen_expr(e.operand, f)  # floor(i) is the identity
             else:
-                # JCoCo has no floor built-in and cannot import math, so the
-                # compiler supplies a run-time support function.
-                self.needs_floor_helper = True
-                f.emit("LOAD_GLOBAL", f.glob(FLOOR_HELPER))
-                self.gen_expr(e.operand, f)
-                f.emit("CALL_FUNCTION", 1)
+                self.call_helper(FLOOR_HELPER, f, (e.operand,))
 
     # -- statements ----------------------------------------------------------
 
@@ -460,50 +886,13 @@ class Compiler:
         f = self.main
         for i, s in enumerate(program):
             if i:
-                f.code.append((None, None, None))  # blank line between statements
+                f.blank()  # a blank line between statements, for the reader
             self.gen_stmt(s, f)
         if program:
-            f.code.append((None, None, None))
+            f.blank()
         f.emit("LOAD_CONST", 0)  # None
         f.emit("RETURN_VALUE")
-
-        functions = [f]
-        if self.needs_floor_helper:
-            functions.append(make_floor_helper())
-        return functions
-
-
-def make_floor_helper():
-    """Build  _floor/1: the largest integer not greater than a real number.
-
-    JCoCo's int() truncates toward zero, as Python's does, so it already is
-    the floor for non-negative arguments; for a negative argument with a
-    fractional part the truncated value is one too large.  The comparison is
-    made in floating point so that its two operands have the same type.
-    """
-    f = Function(FLOOR_HELPER, 1)
-    x, t = f.local("x"), f.local("t")
-    to_int, to_float = f.glob("int"), f.glob("float")
-    one = f.const(1)
-
-    f.emit("LOAD_GLOBAL", to_int)
-    f.emit("LOAD_FAST", x)
-    f.emit("CALL_FUNCTION", 1)
-    f.emit("STORE_FAST", t)  # t = int(x), truncated toward zero
-    f.emit("LOAD_GLOBAL", to_float)
-    f.emit("LOAD_FAST", t)
-    f.emit("CALL_FUNCTION", 1)
-    f.emit("LOAD_FAST", x)
-    f.emit("COMPARE_OP", 4)  # float(t) > x ?
-    f.emit("POP_JUMP_IF_FALSE", "floor00")
-    f.emit("LOAD_FAST", t)
-    f.emit("LOAD_CONST", one)
-    f.emit("BINARY_SUBTRACT")
-    f.emit("STORE_FAST", t)  # t = t - 1
-    f.label("floor00")
-    f.emit("LOAD_FAST", t)
-    f.emit("RETURN_VALUE")
-    return f
+        return [f] + [LIBRARY[name][0]() for name in self.needed]
 
 
 # -----------------------------------------------------------------------------
@@ -515,28 +904,15 @@ OPCODE_WIDTH = 18  # mnemonic field width, so that operands line up
 
 
 def format_value(v):
-    """A constant in JCoCo source form.
-
-    Only None, non-negative integers and non-negative reals can reach the
-    constant pool: literals are unsigned (unary minus is a separate token)
-    and the zeros the compiler introduces are unsigned too.
-    """
+    """A constant in JCoCo source form.  Only None, integers within the
+    machine's range, and (rarely, see gen_const) reals reach the pool."""
     if v is None:
         return "None"
     if isinstance(v, int):
         return str(v)
-    if v != v or v in (float("inf"), float("-inf")):
-        # JCoCo has no literal for these; report and substitute zero.
-        print(
-            "warning: real constant %r is not representable in JCoCo; using 0.0" % v,
-            file=sys.stderr,
-        )
-        return "0.0"
     text = repr(v)
     if "e" in text or "E" in text:
-        # The JCoCo grammar's Float is a plain decimal numeral, so expand the
-        # exponent.  Decimal(float) is exact, so no value is lost.
-        text = format(Decimal(v), "f")
+        text = format(Decimal(v), "f")  # the grammar's Float is plain decimal
     if "." not in text:
         text += ".0"
     return text
@@ -554,7 +930,8 @@ def format_function(f):
         if mnemonic is None:
             out.append(label + ":" if label else "")  # label line, or spacing
             continue
-        line = INDENT + (mnemonic if arg is None else mnemonic.ljust(OPCODE_WIDTH) + str(arg))
+        line = INDENT + (mnemonic if arg is None
+                         else mnemonic.ljust(OPCODE_WIDTH) + str(arg))
         out.append(line.rstrip())
     out.append("END")
     return "\n".join(out)
