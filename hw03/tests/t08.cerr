@@ -1,0 +1,1 @@
+note: JCoCo provides no division for real numbers; the substitute emitted here is exact when the dividend is a whole number and may differ in the last bit otherwise

@@ -1,0 +1,118 @@
+Function: main/0
+Constants: None, 1, 10, 2, 15, 1000000000, 10000, 100, 3, 0.0001234567891234, 2000000000, 99
+Globals: print, _rdiv
+BEGIN
+    LOAD_GLOBAL       0
+    LOAD_CONST        1
+    LOAD_CONST        2
+    BINARY_TRUE_DIVIDE
+    LOAD_CONST        3
+    LOAD_CONST        2
+    BINARY_TRUE_DIVIDE
+    BINARY_ADD
+    CALL_FUNCTION     1
+    POP_TOP
+
+    LOAD_GLOBAL       0
+    LOAD_CONST        4
+    LOAD_CONST        5
+    LOAD_CONST        1
+    BINARY_TRUE_DIVIDE
+    LOAD_CONST        6
+    LOAD_CONST        1
+    BINARY_TRUE_DIVIDE
+    BINARY_MULTIPLY
+    BINARY_TRUE_DIVIDE
+    CALL_FUNCTION     1
+    POP_TOP
+
+    LOAD_GLOBAL       0
+    LOAD_CONST        1
+    LOAD_CONST        1
+    BINARY_TRUE_DIVIDE
+    LOAD_CONST        5
+    LOAD_CONST        1
+    BINARY_TRUE_DIVIDE
+    LOAD_CONST        5
+    LOAD_CONST        1
+    BINARY_TRUE_DIVIDE
+    BINARY_MULTIPLY
+    LOAD_CONST        7
+    LOAD_CONST        1
+    BINARY_TRUE_DIVIDE
+    BINARY_MULTIPLY
+    BINARY_MULTIPLY
+    CALL_FUNCTION     1
+    POP_TOP
+
+    LOAD_GLOBAL       0
+    LOAD_GLOBAL       1
+    LOAD_CONST        8
+    LOAD_CONST        2
+    BINARY_TRUE_DIVIDE
+    LOAD_CONST        1
+    LOAD_CONST        2
+    BINARY_TRUE_DIVIDE
+    CALL_FUNCTION     2
+    CALL_FUNCTION     1
+    POP_TOP
+
+    LOAD_GLOBAL       0
+    LOAD_CONST        9
+    CALL_FUNCTION     1
+    POP_TOP
+
+    LOAD_GLOBAL       0
+    LOAD_CONST        10
+    LOAD_CONST        10
+    BINARY_ADD
+    CALL_FUNCTION     1
+    POP_TOP
+
+    LOAD_GLOBAL       0
+    LOAD_CONST        11
+    CALL_FUNCTION     1
+    POP_TOP
+
+    LOAD_CONST        0
+    RETURN_VALUE
+END
+
+Function: _rdiv/2
+Constants: None, 0, 1
+Locals: a, b, t
+Globals: int
+BEGIN
+    LOAD_FAST         1
+    LOAD_CONST        1
+    LOAD_CONST        2
+    BINARY_TRUE_DIVIDE
+    COMPARE_OP        2
+    POP_JUMP_IF_TRUE  rdv02
+    LOAD_GLOBAL       0
+    LOAD_FAST         0
+    CALL_FUNCTION     1
+    STORE_FAST        2
+    LOAD_FAST         2
+    LOAD_CONST        2
+    BINARY_TRUE_DIVIDE
+    LOAD_FAST         0
+    COMPARE_OP        2
+    POP_JUMP_IF_FALSE rdv01
+    LOAD_FAST         2
+    LOAD_FAST         1
+    BINARY_TRUE_DIVIDE
+    RETURN_VALUE
+rdv01:
+    LOAD_FAST         0
+    LOAD_CONST        2
+    LOAD_FAST         1
+    BINARY_TRUE_DIVIDE
+    BINARY_MULTIPLY
+    RETURN_VALUE
+rdv02:
+    LOAD_CONST        1
+    LOAD_CONST        2
+    BINARY_TRUE_DIVIDE
+    RETURN_VALUE
+END

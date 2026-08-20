@@ -1,0 +1,2 @@
+note: JCoCo provides no division for real numbers; the substitute emitted here is exact when the dividend is a whole number and may differ in the last bit otherwise
+warning: real constant 0.0001234567891234 needs more precision than JCoCo's 32-bit assembler provides; output may differ

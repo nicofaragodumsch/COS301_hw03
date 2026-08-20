@@ -1,0 +1,9 @@
+undefined_variable
+x = 1
+y = 2.0
+x + y
+1 + undefined_variable * 2
+x = 3 @ 4
+1 +
+x
+real(x) - y

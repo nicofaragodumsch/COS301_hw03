@@ -1,0 +1,607 @@
+Function: main/0
+Constants: None, 0, 7, 2, 6, 3, 17, 5, 1, 75, 10
+Locals: a, b
+Globals: print, _idiv, _imod, _rdivf, _rmod
+BEGIN
+    LOAD_GLOBAL       0
+    LOAD_GLOBAL       1
+    LOAD_CONST        1
+    LOAD_CONST        2
+    BINARY_SUBTRACT
+    LOAD_CONST        3
+    CALL_FUNCTION     2
+    CALL_FUNCTION     1
+    POP_TOP
+
+    LOAD_GLOBAL       0
+    LOAD_GLOBAL       2
+    LOAD_CONST        1
+    LOAD_CONST        2
+    BINARY_SUBTRACT
+    LOAD_CONST        3
+    CALL_FUNCTION     2
+    CALL_FUNCTION     1
+    POP_TOP
+
+    LOAD_GLOBAL       0
+    LOAD_GLOBAL       1
+    LOAD_CONST        2
+    LOAD_CONST        1
+    LOAD_CONST        3
+    BINARY_SUBTRACT
+    CALL_FUNCTION     2
+    CALL_FUNCTION     1
+    POP_TOP
+
+    LOAD_GLOBAL       0
+    LOAD_GLOBAL       2
+    LOAD_CONST        2
+    LOAD_CONST        1
+    LOAD_CONST        3
+    BINARY_SUBTRACT
+    CALL_FUNCTION     2
+    CALL_FUNCTION     1
+    POP_TOP
+
+    LOAD_GLOBAL       0
+    LOAD_GLOBAL       1
+    LOAD_CONST        1
+    LOAD_CONST        2
+    BINARY_SUBTRACT
+    LOAD_CONST        1
+    LOAD_CONST        3
+    BINARY_SUBTRACT
+    CALL_FUNCTION     2
+    CALL_FUNCTION     1
+    POP_TOP
+
+    LOAD_GLOBAL       0
+    LOAD_GLOBAL       2
+    LOAD_CONST        1
+    LOAD_CONST        2
+    BINARY_SUBTRACT
+    LOAD_CONST        1
+    LOAD_CONST        3
+    BINARY_SUBTRACT
+    CALL_FUNCTION     2
+    CALL_FUNCTION     1
+    POP_TOP
+
+    LOAD_GLOBAL       0
+    LOAD_GLOBAL       1
+    LOAD_CONST        1
+    LOAD_CONST        4
+    BINARY_SUBTRACT
+    LOAD_CONST        5
+    CALL_FUNCTION     2
+    CALL_FUNCTION     1
+    POP_TOP
+
+    LOAD_GLOBAL       0
+    LOAD_GLOBAL       2
+    LOAD_CONST        1
+    LOAD_CONST        4
+    BINARY_SUBTRACT
+    LOAD_CONST        5
+    CALL_FUNCTION     2
+    CALL_FUNCTION     1
+    POP_TOP
+
+    LOAD_GLOBAL       0
+    LOAD_GLOBAL       1
+    LOAD_CONST        4
+    LOAD_CONST        1
+    LOAD_CONST        5
+    BINARY_SUBTRACT
+    CALL_FUNCTION     2
+    CALL_FUNCTION     1
+    POP_TOP
+
+    LOAD_GLOBAL       0
+    LOAD_GLOBAL       2
+    LOAD_CONST        4
+    LOAD_CONST        1
+    LOAD_CONST        5
+    BINARY_SUBTRACT
+    CALL_FUNCTION     2
+    CALL_FUNCTION     1
+    POP_TOP
+
+    LOAD_CONST        1
+    LOAD_CONST        6
+    BINARY_SUBTRACT
+    STORE_FAST        0
+
+    LOAD_CONST        7
+    STORE_FAST        1
+
+    LOAD_GLOBAL       0
+    LOAD_GLOBAL       1
+    LOAD_FAST         0
+    LOAD_FAST         1
+    CALL_FUNCTION     2
+    CALL_FUNCTION     1
+    POP_TOP
+
+    LOAD_GLOBAL       0
+    LOAD_GLOBAL       2
+    LOAD_FAST         0
+    LOAD_FAST         1
+    CALL_FUNCTION     2
+    CALL_FUNCTION     1
+    POP_TOP
+
+    LOAD_GLOBAL       0
+    LOAD_GLOBAL       1
+    LOAD_FAST         1
+    LOAD_FAST         0
+    CALL_FUNCTION     2
+    CALL_FUNCTION     1
+    POP_TOP
+
+    LOAD_GLOBAL       0
+    LOAD_GLOBAL       2
+    LOAD_FAST         1
+    LOAD_FAST         0
+    CALL_FUNCTION     2
+    CALL_FUNCTION     1
+    POP_TOP
+
+    LOAD_GLOBAL       0
+    LOAD_GLOBAL       3
+    LOAD_CONST        1
+    LOAD_CONST        8
+    BINARY_SUBTRACT
+    LOAD_CONST        8
+    BINARY_TRUE_DIVIDE
+    LOAD_CONST        9
+    LOAD_CONST        10
+    BINARY_TRUE_DIVIDE
+    BINARY_MULTIPLY
+    LOAD_CONST        3
+    LOAD_CONST        8
+    BINARY_TRUE_DIVIDE
+    CALL_FUNCTION     2
+    CALL_FUNCTION     1
+    POP_TOP
+
+    LOAD_GLOBAL       0
+    LOAD_GLOBAL       4
+    LOAD_CONST        1
+    LOAD_CONST        8
+    BINARY_SUBTRACT
+    LOAD_CONST        8
+    BINARY_TRUE_DIVIDE
+    LOAD_CONST        9
+    LOAD_CONST        10
+    BINARY_TRUE_DIVIDE
+    BINARY_MULTIPLY
+    LOAD_CONST        3
+    LOAD_CONST        8
+    BINARY_TRUE_DIVIDE
+    CALL_FUNCTION     2
+    CALL_FUNCTION     1
+    POP_TOP
+
+    LOAD_GLOBAL       0
+    LOAD_GLOBAL       3
+    LOAD_CONST        9
+    LOAD_CONST        10
+    BINARY_TRUE_DIVIDE
+    LOAD_CONST        1
+    LOAD_CONST        8
+    BINARY_SUBTRACT
+    LOAD_CONST        8
+    BINARY_TRUE_DIVIDE
+    LOAD_CONST        3
+    LOAD_CONST        8
+    BINARY_TRUE_DIVIDE
+    BINARY_MULTIPLY
+    CALL_FUNCTION     2
+    CALL_FUNCTION     1
+    POP_TOP
+
+    LOAD_GLOBAL       0
+    LOAD_GLOBAL       4
+    LOAD_CONST        9
+    LOAD_CONST        10
+    BINARY_TRUE_DIVIDE
+    LOAD_CONST        1
+    LOAD_CONST        8
+    BINARY_SUBTRACT
+    LOAD_CONST        8
+    BINARY_TRUE_DIVIDE
+    LOAD_CONST        3
+    LOAD_CONST        8
+    BINARY_TRUE_DIVIDE
+    BINARY_MULTIPLY
+    CALL_FUNCTION     2
+    CALL_FUNCTION     1
+    POP_TOP
+
+    LOAD_GLOBAL       0
+    LOAD_GLOBAL       3
+    LOAD_CONST        1
+    LOAD_CONST        8
+    BINARY_SUBTRACT
+    LOAD_CONST        8
+    BINARY_TRUE_DIVIDE
+    LOAD_CONST        4
+    LOAD_CONST        8
+    BINARY_TRUE_DIVIDE
+    BINARY_MULTIPLY
+    LOAD_CONST        5
+    LOAD_CONST        8
+    BINARY_TRUE_DIVIDE
+    CALL_FUNCTION     2
+    CALL_FUNCTION     1
+    POP_TOP
+
+    LOAD_GLOBAL       0
+    LOAD_GLOBAL       4
+    LOAD_CONST        1
+    LOAD_CONST        8
+    BINARY_SUBTRACT
+    LOAD_CONST        8
+    BINARY_TRUE_DIVIDE
+    LOAD_CONST        4
+    LOAD_CONST        8
+    BINARY_TRUE_DIVIDE
+    BINARY_MULTIPLY
+    LOAD_CONST        5
+    LOAD_CONST        8
+    BINARY_TRUE_DIVIDE
+    CALL_FUNCTION     2
+    CALL_FUNCTION     1
+    POP_TOP
+
+    LOAD_CONST        0
+    RETURN_VALUE
+END
+
+Function: _idiv/2
+Constants: None, 0
+Locals: a, b
+Globals: _imod
+BEGIN
+    LOAD_FAST         1
+    LOAD_CONST        1
+    COMPARE_OP        2
+    POP_JUMP_IF_TRUE  div01
+    LOAD_FAST         0
+    LOAD_GLOBAL       0
+    LOAD_FAST         0
+    LOAD_FAST         1
+    CALL_FUNCTION     2
+    BINARY_SUBTRACT
+    LOAD_FAST         1
+    BINARY_FLOOR_DIVIDE
+    RETURN_VALUE
+div01:
+    LOAD_CONST        1
+    RETURN_VALUE
+END
+
+Function: _imod/2
+Constants: None, 0
+Locals: a, b, r
+BEGIN
+    LOAD_FAST         1
+    LOAD_CONST        1
+    COMPARE_OP        2
+    POP_JUMP_IF_TRUE  mod04
+    LOAD_FAST         0
+    LOAD_FAST         1
+    BINARY_MODULO
+    STORE_FAST        2
+    LOAD_FAST         2
+    LOAD_CONST        1
+    COMPARE_OP        2
+    POP_JUMP_IF_TRUE  mod03
+    LOAD_FAST         2
+    LOAD_CONST        1
+    COMPARE_OP        0
+    POP_JUMP_IF_FALSE mod01
+    LOAD_FAST         1
+    LOAD_CONST        1
+    COMPARE_OP        4
+    POP_JUMP_IF_TRUE  mod02
+    JUMP_ABSOLUTE     mod03
+mod01:
+    LOAD_FAST         1
+    LOAD_CONST        1
+    COMPARE_OP        0
+    POP_JUMP_IF_FALSE mod03
+mod02:
+    LOAD_FAST         2
+    LOAD_FAST         1
+    BINARY_ADD
+    STORE_FAST        2
+mod03:
+    LOAD_FAST         2
+    RETURN_VALUE
+mod04:
+    LOAD_CONST        1
+    RETURN_VALUE
+END
+
+Function: _rdivf/2
+Constants: None, 0, 1
+Locals: a, b, A, B, q
+Globals: _rabs, _rdm
+BEGIN
+    LOAD_FAST         1
+    LOAD_CONST        1
+    LOAD_CONST        2
+    BINARY_TRUE_DIVIDE
+    COMPARE_OP        2
+    POP_JUMP_IF_TRUE  rfd05
+    LOAD_GLOBAL       0
+    LOAD_FAST         0
+    CALL_FUNCTION     1
+    STORE_FAST        2
+    LOAD_GLOBAL       0
+    LOAD_FAST         1
+    CALL_FUNCTION     1
+    STORE_FAST        3
+    LOAD_GLOBAL       1
+    LOAD_FAST         2
+    LOAD_FAST         3
+    LOAD_CONST        1
+    CALL_FUNCTION     3
+    STORE_FAST        4
+    LOAD_FAST         0
+    LOAD_CONST        1
+    LOAD_CONST        2
+    BINARY_TRUE_DIVIDE
+    COMPARE_OP        0
+    POP_JUMP_IF_FALSE rfd01
+    LOAD_FAST         1
+    LOAD_CONST        1
+    LOAD_CONST        2
+    BINARY_TRUE_DIVIDE
+    COMPARE_OP        0
+    POP_JUMP_IF_FALSE rfd02
+    JUMP_ABSOLUTE     rfd04
+rfd01:
+    LOAD_FAST         1
+    LOAD_CONST        1
+    LOAD_CONST        2
+    BINARY_TRUE_DIVIDE
+    COMPARE_OP        0
+    POP_JUMP_IF_FALSE rfd04
+rfd02:
+    LOAD_CONST        1
+    LOAD_CONST        2
+    BINARY_SUBTRACT
+    LOAD_CONST        2
+    BINARY_TRUE_DIVIDE
+    LOAD_FAST         4
+    BINARY_MULTIPLY
+    STORE_FAST        4
+    LOAD_GLOBAL       1
+    LOAD_FAST         2
+    LOAD_FAST         3
+    LOAD_CONST        2
+    CALL_FUNCTION     3
+    LOAD_CONST        1
+    LOAD_CONST        2
+    BINARY_TRUE_DIVIDE
+    COMPARE_OP        3
+    POP_JUMP_IF_FALSE rfd04
+    LOAD_FAST         4
+    LOAD_CONST        2
+    LOAD_CONST        2
+    BINARY_TRUE_DIVIDE
+    BINARY_SUBTRACT
+    STORE_FAST        4
+rfd04:
+    LOAD_FAST         4
+    RETURN_VALUE
+rfd05:
+    LOAD_CONST        1
+    LOAD_CONST        2
+    BINARY_TRUE_DIVIDE
+    RETURN_VALUE
+END
+
+Function: _rabs/1
+Constants: None, 0, 1
+Locals: x
+BEGIN
+    LOAD_FAST         0
+    LOAD_CONST        1
+    LOAD_CONST        2
+    BINARY_TRUE_DIVIDE
+    COMPARE_OP        0
+    POP_JUMP_IF_FALSE abs01
+    LOAD_CONST        1
+    LOAD_CONST        2
+    BINARY_SUBTRACT
+    LOAD_CONST        2
+    BINARY_TRUE_DIVIDE
+    LOAD_FAST         0
+    BINARY_MULTIPLY
+    RETURN_VALUE
+abs01:
+    LOAD_FAST         0
+    RETURN_VALUE
+END
+
+Function: _rdm/3
+Constants: None, 1, 2, 0
+Locals: A, B, want, d, s, r, q
+BEGIN
+    LOAD_FAST         1
+    STORE_FAST        3
+    LOAD_CONST        1
+    LOAD_CONST        1
+    BINARY_TRUE_DIVIDE
+    STORE_FAST        4
+dm00:
+    LOAD_FAST         3
+    LOAD_CONST        2
+    LOAD_CONST        1
+    BINARY_TRUE_DIVIDE
+    BINARY_MULTIPLY
+    LOAD_FAST         0
+    COMPARE_OP        1
+    POP_JUMP_IF_FALSE dm01
+    LOAD_FAST         3
+    LOAD_CONST        2
+    LOAD_CONST        1
+    BINARY_TRUE_DIVIDE
+    BINARY_MULTIPLY
+    STORE_FAST        3
+    LOAD_FAST         4
+    LOAD_CONST        2
+    LOAD_CONST        1
+    BINARY_TRUE_DIVIDE
+    BINARY_MULTIPLY
+    STORE_FAST        4
+    JUMP_ABSOLUTE     dm00
+dm01:
+    LOAD_FAST         0
+    STORE_FAST        5
+    LOAD_CONST        3
+    LOAD_CONST        1
+    BINARY_TRUE_DIVIDE
+    STORE_FAST        6
+dm02:
+    LOAD_FAST         5
+    LOAD_FAST         3
+    COMPARE_OP        5
+    POP_JUMP_IF_FALSE dm03
+    LOAD_FAST         5
+    LOAD_FAST         3
+    BINARY_SUBTRACT
+    STORE_FAST        5
+    LOAD_FAST         6
+    LOAD_FAST         4
+    BINARY_ADD
+    STORE_FAST        6
+dm03:
+    LOAD_FAST         4
+    LOAD_CONST        1
+    LOAD_CONST        1
+    BINARY_TRUE_DIVIDE
+    COMPARE_OP        2
+    POP_JUMP_IF_TRUE  dm04
+    LOAD_FAST         3
+    LOAD_CONST        1
+    LOAD_CONST        2
+    BINARY_TRUE_DIVIDE
+    BINARY_MULTIPLY
+    STORE_FAST        3
+    LOAD_FAST         4
+    LOAD_CONST        1
+    LOAD_CONST        2
+    BINARY_TRUE_DIVIDE
+    BINARY_MULTIPLY
+    STORE_FAST        4
+    JUMP_ABSOLUTE     dm02
+dm04:
+    LOAD_FAST         2
+    LOAD_CONST        3
+    COMPARE_OP        2
+    POP_JUMP_IF_TRUE  dm05
+    LOAD_FAST         5
+    RETURN_VALUE
+dm05:
+    LOAD_FAST         6
+    RETURN_VALUE
+END
+
+Function: _rmod/2
+Constants: None, 0, 1
+Locals: a, b, A, B, r
+Globals: _rabs, _rdm
+BEGIN
+    LOAD_FAST         1
+    LOAD_CONST        1
+    LOAD_CONST        2
+    BINARY_TRUE_DIVIDE
+    COMPARE_OP        2
+    POP_JUMP_IF_TRUE  rmd05
+    LOAD_GLOBAL       0
+    LOAD_FAST         0
+    CALL_FUNCTION     1
+    STORE_FAST        2
+    LOAD_GLOBAL       0
+    LOAD_FAST         1
+    CALL_FUNCTION     1
+    STORE_FAST        3
+    LOAD_GLOBAL       1
+    LOAD_FAST         2
+    LOAD_FAST         3
+    LOAD_CONST        2
+    CALL_FUNCTION     3
+    STORE_FAST        4
+    LOAD_FAST         4
+    LOAD_CONST        1
+    LOAD_CONST        2
+    BINARY_TRUE_DIVIDE
+    COMPARE_OP        2
+    POP_JUMP_IF_TRUE  rmd06
+    LOAD_FAST         0
+    LOAD_CONST        1
+    LOAD_CONST        2
+    BINARY_TRUE_DIVIDE
+    COMPARE_OP        0
+    POP_JUMP_IF_FALSE rmd00
+    LOAD_CONST        1
+    LOAD_CONST        2
+    BINARY_SUBTRACT
+    LOAD_CONST        2
+    BINARY_TRUE_DIVIDE
+    LOAD_FAST         4
+    BINARY_MULTIPLY
+    STORE_FAST        4
+rmd00:
+    LOAD_FAST         4
+    LOAD_CONST        1
+    LOAD_CONST        2
+    BINARY_TRUE_DIVIDE
+    COMPARE_OP        2
+    POP_JUMP_IF_TRUE  rmd04
+    LOAD_FAST         4
+    LOAD_CONST        1
+    LOAD_CONST        2
+    BINARY_TRUE_DIVIDE
+    COMPARE_OP        0
+    POP_JUMP_IF_FALSE rmd01
+    LOAD_FAST         1
+    LOAD_CONST        1
+    LOAD_CONST        2
+    BINARY_TRUE_DIVIDE
+    COMPARE_OP        4
+    POP_JUMP_IF_TRUE  rmd02
+    JUMP_ABSOLUTE     rmd04
+rmd01:
+    LOAD_FAST         1
+    LOAD_CONST        1
+    LOAD_CONST        2
+    BINARY_TRUE_DIVIDE
+    COMPARE_OP        0
+    POP_JUMP_IF_FALSE rmd04
+rmd02:
+    LOAD_FAST         4
+    LOAD_FAST         1
+    BINARY_ADD
+    STORE_FAST        4
+rmd04:
+    LOAD_FAST         4
+    RETURN_VALUE
+rmd05:
+    LOAD_CONST        1
+    LOAD_CONST        2
+    BINARY_TRUE_DIVIDE
+    RETURN_VALUE
+rmd06:
+    LOAD_CONST        1
+    LOAD_CONST        2
+    BINARY_TRUE_DIVIDE
+    LOAD_FAST         1
+    BINARY_MULTIPLY
+    RETURN_VALUE
+END

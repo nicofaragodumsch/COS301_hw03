@@ -1,0 +1,256 @@
+Function: main/0
+Constants: None, 17, 1, 5, 3, 2, 8, 75, 10, 25, 100, 7, 0, 9, 4, 1000000000, 999999999, 123456789, 10000, 987654321, 10000000, 22
+Globals: print, _rdiv, float, _floor
+BEGIN
+    LOAD_GLOBAL       0
+    LOAD_GLOBAL       1
+    LOAD_CONST        1
+    LOAD_CONST        2
+    BINARY_TRUE_DIVIDE
+    LOAD_CONST        3
+    LOAD_CONST        2
+    BINARY_TRUE_DIVIDE
+    CALL_FUNCTION     2
+    CALL_FUNCTION     1
+    POP_TOP
+
+    LOAD_GLOBAL       0
+    LOAD_GLOBAL       1
+    LOAD_CONST        4
+    LOAD_CONST        2
+    BINARY_TRUE_DIVIDE
+    LOAD_CONST        5
+    LOAD_CONST        2
+    BINARY_TRUE_DIVIDE
+    CALL_FUNCTION     2
+    CALL_FUNCTION     1
+    POP_TOP
+
+    LOAD_GLOBAL       0
+    LOAD_GLOBAL       1
+    LOAD_CONST        2
+    LOAD_CONST        2
+    BINARY_TRUE_DIVIDE
+    LOAD_CONST        6
+    LOAD_CONST        2
+    BINARY_TRUE_DIVIDE
+    CALL_FUNCTION     2
+    CALL_FUNCTION     1
+    POP_TOP
+
+    LOAD_GLOBAL       0
+    LOAD_GLOBAL       1
+    LOAD_CONST        7
+    LOAD_CONST        8
+    BINARY_TRUE_DIVIDE
+    LOAD_CONST        9
+    LOAD_CONST        8
+    BINARY_TRUE_DIVIDE
+    CALL_FUNCTION     2
+    CALL_FUNCTION     1
+    POP_TOP
+
+    LOAD_GLOBAL       0
+    LOAD_GLOBAL       1
+    LOAD_GLOBAL       2
+    LOAD_CONST        2
+    CALL_FUNCTION     1
+    LOAD_GLOBAL       2
+    LOAD_CONST        4
+    CALL_FUNCTION     1
+    CALL_FUNCTION     2
+    CALL_FUNCTION     1
+    POP_TOP
+
+    LOAD_GLOBAL       0
+    LOAD_GLOBAL       1
+    LOAD_CONST        2
+    LOAD_CONST        2
+    BINARY_TRUE_DIVIDE
+    LOAD_CONST        10
+    LOAD_CONST        2
+    BINARY_TRUE_DIVIDE
+    BINARY_MULTIPLY
+    LOAD_CONST        11
+    LOAD_CONST        2
+    BINARY_TRUE_DIVIDE
+    CALL_FUNCTION     2
+    CALL_FUNCTION     1
+    POP_TOP
+
+    LOAD_GLOBAL       0
+    LOAD_GLOBAL       1
+    LOAD_CONST        12
+    LOAD_CONST        2
+    BINARY_SUBTRACT
+    LOAD_CONST        2
+    BINARY_TRUE_DIVIDE
+    LOAD_CONST        13
+    LOAD_CONST        2
+    BINARY_TRUE_DIVIDE
+    BINARY_MULTIPLY
+    LOAD_CONST        14
+    LOAD_CONST        2
+    BINARY_TRUE_DIVIDE
+    CALL_FUNCTION     2
+    CALL_FUNCTION     1
+    POP_TOP
+
+    LOAD_GLOBAL       0
+    LOAD_CONST        2
+    LOAD_CONST        2
+    BINARY_TRUE_DIVIDE
+    LOAD_CONST        15
+    LOAD_CONST        2
+    BINARY_TRUE_DIVIDE
+    LOAD_CONST        8
+    LOAD_CONST        2
+    BINARY_TRUE_DIVIDE
+    BINARY_MULTIPLY
+    BINARY_MULTIPLY
+    CALL_FUNCTION     1
+    POP_TOP
+
+    LOAD_GLOBAL       0
+    LOAD_CONST        16
+    LOAD_CONST        2
+    BINARY_TRUE_DIVIDE
+    CALL_FUNCTION     1
+    POP_TOP
+
+    LOAD_GLOBAL       0
+    LOAD_CONST        17
+    LOAD_CONST        18
+    BINARY_TRUE_DIVIDE
+    CALL_FUNCTION     1
+    POP_TOP
+
+    LOAD_GLOBAL       0
+    LOAD_CONST        19
+    LOAD_CONST        2
+    BINARY_TRUE_DIVIDE
+    LOAD_CONST        20
+    LOAD_CONST        2
+    BINARY_TRUE_DIVIDE
+    BINARY_MULTIPLY
+    CALL_FUNCTION     1
+    POP_TOP
+
+    LOAD_GLOBAL       0
+    LOAD_CONST        5
+    LOAD_CONST        10
+    BINARY_TRUE_DIVIDE
+    LOAD_CONST        4
+    LOAD_CONST        2
+    BINARY_TRUE_DIVIDE
+    BINARY_MULTIPLY
+    CALL_FUNCTION     1
+    POP_TOP
+
+    LOAD_GLOBAL       0
+    LOAD_GLOBAL       3
+    LOAD_GLOBAL       1
+    LOAD_CONST        1
+    LOAD_CONST        2
+    BINARY_TRUE_DIVIDE
+    LOAD_CONST        3
+    LOAD_CONST        2
+    BINARY_TRUE_DIVIDE
+    CALL_FUNCTION     2
+    CALL_FUNCTION     1
+    CALL_FUNCTION     1
+    POP_TOP
+
+    LOAD_GLOBAL       0
+    LOAD_GLOBAL       1
+    LOAD_GLOBAL       2
+    LOAD_CONST        21
+    CALL_FUNCTION     1
+    LOAD_GLOBAL       2
+    LOAD_CONST        11
+    CALL_FUNCTION     1
+    CALL_FUNCTION     2
+    CALL_FUNCTION     1
+    POP_TOP
+
+    LOAD_CONST        0
+    RETURN_VALUE
+END
+
+Function: _rdiv/2
+Constants: None, 0, 1
+Locals: a, b, t
+Globals: int
+BEGIN
+    LOAD_FAST         1
+    LOAD_CONST        1
+    LOAD_CONST        2
+    BINARY_TRUE_DIVIDE
+    COMPARE_OP        2
+    POP_JUMP_IF_TRUE  rdv02
+    LOAD_GLOBAL       0
+    LOAD_FAST         0
+    CALL_FUNCTION     1
+    STORE_FAST        2
+    LOAD_FAST         2
+    LOAD_CONST        2
+    BINARY_TRUE_DIVIDE
+    LOAD_FAST         0
+    COMPARE_OP        2
+    POP_JUMP_IF_FALSE rdv01
+    LOAD_FAST         2
+    LOAD_FAST         1
+    BINARY_TRUE_DIVIDE
+    RETURN_VALUE
+rdv01:
+    LOAD_FAST         0
+    LOAD_CONST        2
+    LOAD_FAST         1
+    BINARY_TRUE_DIVIDE
+    BINARY_MULTIPLY
+    RETURN_VALUE
+rdv02:
+    LOAD_CONST        1
+    LOAD_CONST        2
+    BINARY_TRUE_DIVIDE
+    RETURN_VALUE
+END
+
+Function: _floor/1
+Constants: None
+Locals: x
+Globals: int, _rfloor
+BEGIN
+    LOAD_GLOBAL       0
+    LOAD_GLOBAL       1
+    LOAD_FAST         0
+    CALL_FUNCTION     1
+    CALL_FUNCTION     1
+    RETURN_VALUE
+END
+
+Function: _rfloor/1
+Constants: None, 1
+Locals: x, t
+Globals: int
+BEGIN
+    LOAD_GLOBAL       0
+    LOAD_FAST         0
+    CALL_FUNCTION     1
+    LOAD_CONST        1
+    BINARY_TRUE_DIVIDE
+    STORE_FAST        1
+    LOAD_FAST         1
+    LOAD_FAST         0
+    COMPARE_OP        4
+    POP_JUMP_IF_FALSE rfl01
+    LOAD_FAST         1
+    LOAD_CONST        1
+    LOAD_CONST        1
+    BINARY_TRUE_DIVIDE
+    BINARY_SUBTRACT
+    STORE_FAST        1
+rfl01:
+    LOAD_FAST         1
+    RETURN_VALUE
+END

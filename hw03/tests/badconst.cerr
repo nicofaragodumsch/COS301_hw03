@@ -1,0 +1,1 @@
+warning: integer constant 3000000000 is outside JCoCo's 32-bit integer range; the assembler will reject it

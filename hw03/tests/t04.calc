@@ -1,0 +1,18 @@
+pi = 3.14159
+r = 2.0
+area = pi * r * r
+area
+floor(area)
+floor(-area)
+real(7)
+real(7) / 2.0
+floor(2.5)
+floor(-2.5)
+floor(-3.0)
+floor(3)
+big = 1.5e3
+big
+tiny = 2.5e-4
+tiny
+half = real(1) / real(2)
+half

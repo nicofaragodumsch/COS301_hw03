@@ -1,0 +1,5 @@
+Illegal character '@'
+Syntax error at EOF
+Undefined name 'undefined_variable'
+type error: mismatched types int and float for '+'
+Undefined name 'undefined_variable'

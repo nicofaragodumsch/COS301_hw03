@@ -1,0 +1,202 @@
+Function: main/0
+Constants: None, 5, 2, 25, 10, 0, 3, 4, 1, 35
+Locals: real, floor, a, b, c, d
+Globals: print, _rdiv, float, _floor, _ddiv
+BEGIN
+    LOAD_CONST        1
+    STORE_FAST        0
+
+    LOAD_CONST        2
+    STORE_FAST        1
+
+    LOAD_GLOBAL       0
+    LOAD_FAST         0
+    LOAD_FAST         1
+    BINARY_ADD
+    CALL_FUNCTION     1
+    POP_TOP
+
+    LOAD_GLOBAL       0
+    LOAD_GLOBAL       1
+    LOAD_GLOBAL       2
+    LOAD_FAST         0
+    CALL_FUNCTION     1
+    LOAD_GLOBAL       2
+    LOAD_FAST         1
+    CALL_FUNCTION     1
+    CALL_FUNCTION     2
+    CALL_FUNCTION     1
+    POP_TOP
+
+    LOAD_GLOBAL       0
+    LOAD_GLOBAL       3
+    LOAD_GLOBAL       4
+    LOAD_FAST         0
+    LOAD_FAST         1
+    CALL_FUNCTION     2
+    CALL_FUNCTION     1
+    CALL_FUNCTION     1
+    POP_TOP
+
+    LOAD_CONST        2
+    STORE_FAST        2
+
+    LOAD_GLOBAL       0
+    LOAD_FAST         2
+    CALL_FUNCTION     1
+    POP_TOP
+
+    LOAD_CONST        3
+    LOAD_CONST        4
+    BINARY_TRUE_DIVIDE
+    STORE_FAST        2
+
+    LOAD_GLOBAL       0
+    LOAD_FAST         2
+    CALL_FUNCTION     1
+    POP_TOP
+
+    LOAD_CONST        5
+    LOAD_CONST        5
+    LOAD_CONST        6
+    BINARY_SUBTRACT
+    BINARY_SUBTRACT
+    STORE_FAST        3
+
+    LOAD_GLOBAL       0
+    LOAD_FAST         3
+    CALL_FUNCTION     1
+    POP_TOP
+
+    LOAD_CONST        2
+    LOAD_CONST        6
+    LOAD_CONST        7
+    BINARY_ADD
+    BINARY_MULTIPLY
+    STORE_FAST        4
+
+    LOAD_GLOBAL       0
+    LOAD_FAST         4
+    CALL_FUNCTION     1
+    POP_TOP
+
+    LOAD_CONST        5
+    LOAD_CONST        8
+    BINARY_SUBTRACT
+    LOAD_CONST        8
+    BINARY_TRUE_DIVIDE
+    LOAD_CONST        9
+    LOAD_CONST        4
+    BINARY_TRUE_DIVIDE
+    BINARY_MULTIPLY
+    LOAD_CONST        2
+    LOAD_CONST        8
+    BINARY_TRUE_DIVIDE
+    BINARY_MULTIPLY
+    STORE_FAST        5
+
+    LOAD_GLOBAL       0
+    LOAD_FAST         5
+    CALL_FUNCTION     1
+    POP_TOP
+
+    LOAD_CONST        0
+    RETURN_VALUE
+END
+
+Function: _rdiv/2
+Constants: None, 0, 1
+Locals: a, b, t
+Globals: int
+BEGIN
+    LOAD_FAST         1
+    LOAD_CONST        1
+    LOAD_CONST        2
+    BINARY_TRUE_DIVIDE
+    COMPARE_OP        2
+    POP_JUMP_IF_TRUE  rdv02
+    LOAD_GLOBAL       0
+    LOAD_FAST         0
+    CALL_FUNCTION     1
+    STORE_FAST        2
+    LOAD_FAST         2
+    LOAD_CONST        2
+    BINARY_TRUE_DIVIDE
+    LOAD_FAST         0
+    COMPARE_OP        2
+    POP_JUMP_IF_FALSE rdv01
+    LOAD_FAST         2
+    LOAD_FAST         1
+    BINARY_TRUE_DIVIDE
+    RETURN_VALUE
+rdv01:
+    LOAD_FAST         0
+    LOAD_CONST        2
+    LOAD_FAST         1
+    BINARY_TRUE_DIVIDE
+    BINARY_MULTIPLY
+    RETURN_VALUE
+rdv02:
+    LOAD_CONST        1
+    LOAD_CONST        2
+    BINARY_TRUE_DIVIDE
+    RETURN_VALUE
+END
+
+Function: _floor/1
+Constants: None
+Locals: x
+Globals: int, _rfloor
+BEGIN
+    LOAD_GLOBAL       0
+    LOAD_GLOBAL       1
+    LOAD_FAST         0
+    CALL_FUNCTION     1
+    CALL_FUNCTION     1
+    RETURN_VALUE
+END
+
+Function: _rfloor/1
+Constants: None, 1
+Locals: x, t
+Globals: int
+BEGIN
+    LOAD_GLOBAL       0
+    LOAD_FAST         0
+    CALL_FUNCTION     1
+    LOAD_CONST        1
+    BINARY_TRUE_DIVIDE
+    STORE_FAST        1
+    LOAD_FAST         1
+    LOAD_FAST         0
+    COMPARE_OP        4
+    POP_JUMP_IF_FALSE rfl01
+    LOAD_FAST         1
+    LOAD_CONST        1
+    LOAD_CONST        1
+    BINARY_TRUE_DIVIDE
+    BINARY_SUBTRACT
+    STORE_FAST        1
+rfl01:
+    LOAD_FAST         1
+    RETURN_VALUE
+END
+
+Function: _ddiv/2
+Constants: None, 0, 1
+Locals: a, b
+BEGIN
+    LOAD_FAST         1
+    LOAD_CONST        1
+    COMPARE_OP        2
+    POP_JUMP_IF_TRUE  ddv01
+    LOAD_FAST         0
+    LOAD_FAST         1
+    BINARY_TRUE_DIVIDE
+    RETURN_VALUE
+ddv01:
+    LOAD_CONST        1
+    LOAD_CONST        2
+    BINARY_TRUE_DIVIDE
+    RETURN_VALUE
+END

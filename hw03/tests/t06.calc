@@ -1,0 +1,15 @@
+real = 5
+floor = 2
+real + floor
+real(real) / real(floor)
+floor(real / floor)
+a = 2
+a
+a = 2.5
+a
+b = -(-3)
+b
+c = 2 * (3 + 4)
+c
+d = -3.5 * 2.0
+d

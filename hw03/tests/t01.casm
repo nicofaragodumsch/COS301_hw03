@@ -1,0 +1,24 @@
+Function: main/0
+Constants: None, 0, 300000, 5, 7, 3
+Locals: xyzzy
+Globals: print
+BEGIN
+    LOAD_CONST        1
+    LOAD_CONST        2
+    BINARY_SUBTRACT
+    LOAD_CONST        3
+    LOAD_CONST        4
+    BINARY_MULTIPLY
+    BINARY_ADD
+    LOAD_CONST        5
+    BINARY_SUBTRACT
+    STORE_FAST        0
+
+    LOAD_GLOBAL       0
+    LOAD_FAST         0
+    CALL_FUNCTION     1
+    POP_TOP
+
+    LOAD_CONST        0
+    RETURN_VALUE
+END

@@ -1,0 +1,88 @@
+
+
+*********************************************************
+        An Uncaught Exception Occurred
+*********************************************************
+integer overflow while executing instruction BINARY_ADD
+---------------------------------------------------------
+              The Exception's Traceback
+---------------------------------------------------------
+=========> PC=59 in this function. 
+Function: main/0
+Constants: None, 1, 10, 2, 15, 1000000000, 10000, 100, 3, 0.0001234567898791, 2000000000, 99
+Globals: print, _rdiv
+BEGIN
+0:           LOAD_GLOBAL                    0
+1:           LOAD_CONST                     1
+2:           LOAD_CONST                     2
+3:           BINARY_TRUE_DIVIDE
+4:           LOAD_CONST                     3
+5:           LOAD_CONST                     2
+6:           BINARY_TRUE_DIVIDE
+7:           BINARY_ADD
+8:           CALL_FUNCTION                  1
+9:           POP_TOP
+10:          LOAD_GLOBAL                    0
+11:          LOAD_CONST                     4
+12:          LOAD_CONST                     5
+13:          LOAD_CONST                     1
+14:          BINARY_TRUE_DIVIDE
+15:          LOAD_CONST                     6
+16:          LOAD_CONST                     1
+17:          BINARY_TRUE_DIVIDE
+18:          BINARY_MULTIPLY
+19:          BINARY_TRUE_DIVIDE
+20:          CALL_FUNCTION                  1
+21:          POP_TOP
+22:          LOAD_GLOBAL                    0
+23:          LOAD_CONST                     1
+24:          LOAD_CONST                     1
+25:          BINARY_TRUE_DIVIDE
+26:          LOAD_CONST                     5
+27:          LOAD_CONST                     1
+28:          BINARY_TRUE_DIVIDE
+29:          LOAD_CONST                     5
+30:          LOAD_CONST                     1
+31:          BINARY_TRUE_DIVIDE
+32:          BINARY_MULTIPLY
+33:          LOAD_CONST                     7
+34:          LOAD_CONST                     1
+35:          BINARY_TRUE_DIVIDE
+36:          BINARY_MULTIPLY
+37:          BINARY_MULTIPLY
+38:          CALL_FUNCTION                  1
+39:          POP_TOP
+40:          LOAD_GLOBAL                    0
+41:          LOAD_GLOBAL                    1
+42:          LOAD_CONST                     8
+43:          LOAD_CONST                     2
+44:          BINARY_TRUE_DIVIDE
+45:          LOAD_CONST                     1
+46:          LOAD_CONST                     2
+47:          BINARY_TRUE_DIVIDE
+48:          CALL_FUNCTION                  2
+49:          CALL_FUNCTION                  1
+50:          POP_TOP
+51:          LOAD_GLOBAL                    0
+52:          LOAD_CONST                     9
+53:          CALL_FUNCTION                  1
+54:          POP_TOP
+55:          LOAD_GLOBAL                    0
+56:          LOAD_CONST                    10
+57:          LOAD_CONST                    10
+58:          BINARY_ADD
+59:          CALL_FUNCTION                  1
+60:          POP_TOP
+61:          LOAD_GLOBAL                    0
+62:          LOAD_CONST                    11
+63:          CALL_FUNCTION                  1
+64:          POP_TOP
+65:          LOAD_CONST                     0
+66:          RETURN_VALUE
+END
+
+*********************************************************
+            An Uncaught Exception Occurred (See Above) 
+*********************************************************
+integer overflow while executing instruction BINARY_ADD
+*********************************************************
