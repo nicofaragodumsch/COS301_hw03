@@ -201,6 +201,12 @@ BEGIN
     BINARY_TRUE_DIVIDE
     COMPARE_OP        2
     POP_JUMP_IF_TRUE  rdv02
+    LOAD_FAST         0
+    LOAD_CONST        1
+    LOAD_CONST        2
+    BINARY_TRUE_DIVIDE
+    COMPARE_OP        2
+    POP_JUMP_IF_TRUE  rdv03
     LOAD_GLOBAL       0
     LOAD_FAST         0
     CALL_FUNCTION     1
@@ -226,5 +232,10 @@ rdv02:
     LOAD_CONST        1
     LOAD_CONST        2
     BINARY_TRUE_DIVIDE
+    RETURN_VALUE
+rdv03:
+    LOAD_FAST         0
+    LOAD_FAST         1
+    BINARY_MULTIPLY
     RETURN_VALUE
 END

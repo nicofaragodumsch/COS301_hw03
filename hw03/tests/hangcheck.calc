@@ -1,0 +1,12 @@
+huge = 1e22 * 1e22 * 1e22 * 1e22 * 1e22 * 1e22 * 1e22 * 1e22
+tiny = 1e-22 * 1e-22 * 1e-22 * 1e-22 * 1e-22 * 1e-22 * 1e-22 * 1e-22
+huge // tiny
+huge % tiny
+tiny // huge
+tiny % huge
+overflowed = 1e301
+overflowed // 1e-30
+overflowed % 1e-30
+1e-320 % 1e-322
+done = 99
+done

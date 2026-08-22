@@ -199,6 +199,12 @@ BEGIN
     BINARY_TRUE_DIVIDE
     COMPARE_OP        2
     POP_JUMP_IF_TRUE  rfd05
+    LOAD_FAST         0
+    LOAD_CONST        1
+    LOAD_CONST        2
+    BINARY_TRUE_DIVIDE
+    COMPARE_OP        2
+    POP_JUMP_IF_TRUE  rfd06
     LOAD_GLOBAL       0
     LOAD_FAST         0
     CALL_FUNCTION     1
@@ -266,6 +272,11 @@ rfd05:
     LOAD_CONST        2
     BINARY_TRUE_DIVIDE
     RETURN_VALUE
+rfd06:
+    LOAD_FAST         0
+    LOAD_FAST         1
+    BINARY_MULTIPLY
+    RETURN_VALUE
 END
 
 Function: _rabs/1
@@ -293,7 +304,7 @@ END
 
 Function: _rdm/3
 Constants: None, 1, 2, 0
-Locals: A, B, want, d, s, r, q
+Locals: A, B, want, d, s, r, q, twice
 BEGIN
     LOAD_FAST         1
     STORE_FAST        3
@@ -307,14 +318,20 @@ dm00:
     LOAD_CONST        1
     BINARY_TRUE_DIVIDE
     BINARY_MULTIPLY
-    LOAD_FAST         0
-    COMPARE_OP        1
-    POP_JUMP_IF_FALSE dm01
-    LOAD_FAST         3
+    STORE_FAST        7
+    LOAD_FAST         7
     LOAD_CONST        2
     LOAD_CONST        1
     BINARY_TRUE_DIVIDE
     BINARY_MULTIPLY
+    LOAD_FAST         7
+    COMPARE_OP        2
+    POP_JUMP_IF_TRUE  dm01
+    LOAD_FAST         7
+    LOAD_FAST         0
+    COMPARE_OP        1
+    POP_JUMP_IF_FALSE dm01
+    LOAD_FAST         7
     STORE_FAST        3
     LOAD_FAST         4
     LOAD_CONST        2
@@ -344,10 +361,8 @@ dm02:
     BINARY_ADD
     STORE_FAST        6
 dm03:
-    LOAD_FAST         4
-    LOAD_CONST        1
-    LOAD_CONST        1
-    BINARY_TRUE_DIVIDE
+    LOAD_FAST         3
+    LOAD_FAST         1
     COMPARE_OP        2
     POP_JUMP_IF_TRUE  dm04
     LOAD_FAST         3
@@ -480,6 +495,12 @@ BEGIN
     BINARY_TRUE_DIVIDE
     COMPARE_OP        2
     POP_JUMP_IF_TRUE  rdv02
+    LOAD_FAST         0
+    LOAD_CONST        1
+    LOAD_CONST        2
+    BINARY_TRUE_DIVIDE
+    COMPARE_OP        2
+    POP_JUMP_IF_TRUE  rdv03
     LOAD_GLOBAL       0
     LOAD_FAST         0
     CALL_FUNCTION     1
@@ -505,5 +526,10 @@ rdv02:
     LOAD_CONST        1
     LOAD_CONST        2
     BINARY_TRUE_DIVIDE
+    RETURN_VALUE
+rdv03:
+    LOAD_FAST         0
+    LOAD_FAST         1
+    BINARY_MULTIPLY
     RETURN_VALUE
 END

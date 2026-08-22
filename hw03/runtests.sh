@@ -59,6 +59,21 @@ python3 calccomp.py < tests/vmlimits.calc > tests/vmlimits.casm 2> tests/vmlimit
 $COCO tests/vmlimits.casm > tests/vmlimits.run 2> tests/vmlimits.rerr
 echo "recorded tests/vmlimits.{out,run}: known VM limits, see the README"
 
+# Extreme exponents: the values cannot agree (they overflow, or print through
+# DecimalFormat), but the run must *finish* and must not lose the statements
+# after it.  An earlier version of the long-division routine looped forever
+# here, which a plain diff would have hung on rather than failed, so this is
+# asserted on termination and on the final marker instead.
+python3 calccomp.py < tests/hangcheck.calc > tests/hangcheck.casm 2> tests/hangcheck.cerr
+if command -v timeout > /dev/null 2>&1; then LIMIT="timeout 120"; else LIMIT=""; fi
+if $LIMIT $COCO tests/hangcheck.casm > tests/hangcheck.run 2> tests/hangcheck.rerr \
+   && [ "$(tail -n 1 tests/hangcheck.run)" = "99" ]; then
+    echo "PASS hangcheck (terminated, and no later statement was lost)"
+else
+    echo "FAIL hangcheck (did not finish, or lost output after an overflow)"
+    status=1
+fi
+
 # A constant JCoCo cannot hold: the compiler must say so and exit 2, since the
 # program it writes would not assemble.  This one *is* asserted.
 python3 calccomp.py < tests/badconst.calc > tests/badconst.casm 2> tests/badconst.cerr

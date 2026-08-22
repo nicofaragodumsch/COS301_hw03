@@ -128,9 +128,12 @@ by operand type; each is emitted only if the program uses it.
 | `//` | `_idiv` | `_rdivf` |
 | `%` | `_imod` | `_rmod` |
 
-`_rdm` is binary long division: the divisor is doubled until it reaches the
-dividend, then halved back down, subtracted whenever it fits, with the matching
-power of two accumulated into the quotient.  Every step is exact — scaling by
+`_rdm` is binary long division: the divisor is doubled while doubling still
+changes it and it stays below the dividend, then halved back down, subtracted
+whenever it fits, with the matching power of two accumulated into the
+quotient.  The loop ends when the divisor has come back to its original value
+— not when the accumulated power of two returns to one, which fails to happen
+once that power overflows to infinity.  Every step is exact — scaling by
 two neither rounds nor drops bits, and a subtraction happens only when
 `d <= r < 2d`, where the difference is representable — so it yields HW02's
 remainder bit for bit, which no combination of the machine's rounding
@@ -243,10 +246,16 @@ records each one, and `tests/vmlimits.out` and `.run` show the two outputs.
   quotients print differently from HW02's — of which 11.3 points are caused by
   this rounding and the rest by JCoCo's printing, which would have differed
   anyway.  `0.3 / 0.1` is an instance: HW02 prints `2.9999999999999996` and the
-  compiled program prints `3.0`.  Correctly rounded division of two arbitrary
-  doubles is precisely the operation the machine lacks, so no instruction
-  sequence can do better; the compiler says so once, on standard error, for any
-  program that divides reals.
+  compiled program prints `3.0`.  The compiler says so once, on standard error,
+  for any program that divides reals.
+
+  This is not irreducible, and an earlier draft of this README wrongly said it
+  was.  The same technique as `_rdm` would settle it: continue the long
+  division about fifty-four places below the units and use the leftover
+  remainder as the sticky bit for round to nearest even.  That is a software
+  floating-point divide — subnormal quotients and ties both need care — and it
+  is not attempted here; the honest statement is that it was judged too costly
+  for one operator, not that the machine forbids it.
 
   `//` and `%` on reals do *not* inherit this: they never call `_rdiv`.  An
   earlier version computed them as `a - b * (a // b)` from the approximate
@@ -256,11 +265,26 @@ records each one, and `tests/vmlimits.out` and `.run` show the two outputs.
   over the same 100 000 pairs, `//` and `%` now agree with HW02 exactly, and
   the 0.74% of remainders that still print differently do so only because of
   `DecimalFormat`.
+
+  A zero quotient or remainder keeps its sign throughout: `_rmod` returns
+  `0.0 * b`, and `/` and `//` return `a * b` for a zero dividend, since
+  `int()` and `_rabs` both lose the sign of `-0.0`.  `tests/t10.calc` checks
+  every combination.
 * **`real()` and `floor()` inherit the 32-bit range**, since they go through
   `int()`, whose Java cast saturates.
 * **Real `//` with an enormous quotient** can differ by one, but only where
   HW02 is itself inexact: above 2^53 Python computes float `//` through a
   rounded division, while `_rdm` computes the true quotient.
+* **A quotient too large for a double** comes back as an infinity, as it does
+  in HW02, but prints as `DecimalFormat`'s infinity symbol (U+221E, which a
+  JVM whose output charset is not Unicode writes as `?`) where HW02 prints
+  `inf`.  What matters more is that the run *finishes*: `_rdm` scales its
+  divisor up only while doubling still changes it and ends when the divisor
+  has halved back to its original value, so neither an overflowing scale
+  factor nor an infinite dividend can keep the loop going.  An earlier version
+  ended the loop when the scale factor returned to one, and hung on both.
+  `tests/hangcheck.calc` covers the cases, asserting termination and that no
+  statement after an overflow is lost.
 * **Diagnostics cannot be reproduced at run time.**  JCoCo offers no standard
   error stream, so the compiled program stays silent where HW02 writes a
   warning; the compiler emits the equivalent diagnostics itself, at compile
@@ -285,10 +309,14 @@ mixed-type operation, and an empty operand stack at every `RETURN_VALUE`.
 
 All nine assertions pass on the real VM (JCoCo built from `kentdlee/JCoCo`,
 with the JavaFX turtle module stubbed out, which is irrelevant here).
-`tools/fuzz.py` extends the comparison to random programs: of 300 programs run
+`tools/fuzz.py` extends the comparison to random programs: of 250 programs run
 against the real VM — mixing both types, all six operators, both casts, nested
-negations, zero divisors, undefined names, and type errors — 299 agree exactly
-and 1 differs only in the documented real-printing case.
+negations, zero divisors, undefined names, and type errors — all 250 agree
+exactly.  Separately, a grid of all 300 combinations of `/`, `//` and `%` over
+signed zeros, ordinary reals, and values at both ends of the exponent range
+produced no sign error and no arithmetic error; the 58 lines that print
+differently are all `DecimalFormat` doing so, including 20 magnitudes below
+1e-16 that it renders as `0.0` (with the sign preserved).
 
 The compiler exits 2, rather than 0, when the program it has written is known
 not to assemble (an integer constant outside the machine's range); warnings
@@ -306,6 +334,8 @@ programs do assemble and run.  `tests/badconst.calc` asserts this.
 | `t08` | Zero divisors of all six kinds, each followed by more statements, checking that no output is lost. |
 | `t09` | Real division, including exact whole-number dividends, and exact real constants. |
 | `vmlimits` | Every divergence above, in order, with the aborting overflow last so that it masks nothing; recorded for inspection, not asserted. |
+| `t10` | Signed zeros through `/`, `//`, `%`, `floor()` and multiplication — `-0.0` must survive each. |
+| `hangcheck` | Exponent spreads that overflow the quotient or the dividend; asserts termination and the final statement, not the values. |
 | `badconst` | An integer constant the machine cannot hold: asserts the diagnostic and the exit status. |
 
 ## Resources

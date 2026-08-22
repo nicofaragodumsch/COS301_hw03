@@ -9,13 +9,15 @@
 #                  notation, div (//), mod (%), real() and floor().
 # Output (stdout): a JCoCo assembly language program that, when executed with
 #                  the coco command, writes on standard output what the HW02
-#                  interpreter writes for the same input.  This holds exactly
-#                  for the required integer language, and for the extended
-#                  language except where the JCoCo machine cannot represent or
-#                  print a real number as Python does: its integers are 32-bit,
-#                  its reals print through DecimalFormat, and it provides no
-#                  division for reals.  The README lists every such case, and
-#                  tests/vmlimits.calc collects them.
+#                  interpreter writes for the same input.  This holds for
+#                  required-language programs whose values stay inside the
+#                  machine's 32-bit integer range, and for the extended
+#                  language except where JCoCo cannot represent or print a real
+#                  number as Python does: its integers are 32-bit and overflow
+#                  raises, its reals print through DecimalFormat, and it
+#                  provides no division for reals.  Both kinds of exception are
+#                  properties of the target rather than choices made here; the
+#                  README lists every one, and tests/vmlimits.calc shows them.
 # Diagnostics (stderr): messages for undefined names, type mismatches and
 #                  syntax errors, worded as in HW02, plus warnings about values
 #                  this machine cannot hold.  They are emitted at compile time
@@ -589,9 +591,12 @@ def build_rdiv():
 
     Otherwise the quotient must be formed as a * (1/b), and the extra rounding
     of the reciprocal can move the last bit of the result: about one real
-    division in six differs from HW02's in that bit.  No sequence of this
-    machine's instructions can do better, since correctly rounded division of
-    two arbitrary doubles is exactly the operation it lacks.  See the README.
+    division in six prints differently from HW02's on that account.  This is
+    the one operation left inexact.  It could be made exact by the same means
+    as _rdm -- continuing the long division some fifty-four places below the
+    units and using the leftover remainder as the sticky bit for round to
+    nearest even -- which is a software floating-point divide, with subnormal
+    and tie cases to get right; it is not attempted here.  See the README.
     """
     f = Function("_rdiv", 2)
     a, b = f.local("a"), f.local("b")
@@ -599,6 +604,8 @@ def build_rdiv():
 
     f.compare_zero(b, 2, True)
     f.emit("POP_JUMP_IF_TRUE", "rdv02")  # b == 0: HW02 yields 0.0
+    f.compare_zero(a, 2, True)
+    f.emit("POP_JUMP_IF_TRUE", "rdv03")  # a == 0: the sign still matters
     f.emit("LOAD_GLOBAL", f.glob("int"))
     f.emit("LOAD_FAST", a)
     f.emit("CALL_FUNCTION", 1)
@@ -622,6 +629,11 @@ def build_rdiv():
     f.emit("RETURN_VALUE")
     f.label("rdv02")
     f.ratio(0)
+    f.emit("RETURN_VALUE")
+    f.label("rdv03")  # a * b is zero with the sign of the quotient, and
+    f.emit("LOAD_FAST", a)  # int() would have laundered a negative zero away
+    f.emit("LOAD_FAST", b)
+    f.emit("BINARY_MULTIPLY")
     f.emit("RETURN_VALUE")
     return f
 
@@ -695,10 +707,19 @@ def build_rdm():
 
     The loop runs once per power of two between the operands, at most about
     2100 times for the machine's extreme exponents and typically fewer than 60.
+    It is the divisor, not the accumulated scale factor, that controls
+    termination: `d` is only ever doubled while it stays below the dividend, so
+    it is finite, and halving returns it exactly to `B`.  The scale factor `s`
+    *can* overflow to infinity, when the quotient is too large for a double to
+    hold -- an exponent spread of more than about 308 decades.  The quotient
+    then comes back as an infinity, which is the value HW02 computes too; what
+    must not happen, and no longer does, is the loop failing to end because
+    infinity never halves back down to one.
     """
     f = Function("_rdm", 3)
     a, b, want = f.local("A"), f.local("B"), f.local("want")
     d, s, r, q = f.local("d"), f.local("s"), f.local("r"), f.local("q")
+    twice = f.local("twice")
 
     f.emit("LOAD_FAST", b)
     f.emit("STORE_FAST", d)
@@ -709,12 +730,18 @@ def build_rdm():
     f.emit("LOAD_FAST", d)
     f.ratio(2)
     f.emit("BINARY_MULTIPLY")
+    f.emit("STORE_FAST", twice)
+    f.emit("LOAD_FAST", twice)
+    f.ratio(2)
+    f.emit("BINARY_MULTIPLY")
+    f.emit("LOAD_FAST", twice)
+    f.emit("COMPARE_OP", 2)  # doubling no longer changes it: it is infinite
+    f.emit("POP_JUMP_IF_TRUE", "dm01")  # stop, or d could never halve back
+    f.emit("LOAD_FAST", twice)
     f.emit("LOAD_FAST", a)
     f.emit("COMPARE_OP", 1)  # d * 2 <= A ?
     f.emit("POP_JUMP_IF_FALSE", "dm01")
-    f.emit("LOAD_FAST", d)
-    f.ratio(2)
-    f.emit("BINARY_MULTIPLY")
+    f.emit("LOAD_FAST", twice)
     f.emit("STORE_FAST", d)
     f.emit("LOAD_FAST", s)
     f.ratio(2)
@@ -742,9 +769,9 @@ def build_rdm():
     f.emit("BINARY_ADD")
     f.emit("STORE_FAST", q)
     f.label("dm03")
-    f.emit("LOAD_FAST", s)
-    f.ratio(1)
-    f.emit("COMPARE_OP", 2)  # s == 1: the units place is done
+    f.emit("LOAD_FAST", d)
+    f.emit("LOAD_FAST", b)
+    f.emit("COMPARE_OP", 2)  # d back down to B: the units place is done
     f.emit("POP_JUMP_IF_TRUE", "dm04")
     f.emit("LOAD_FAST", d)
     f.ratio(1, 2)
@@ -851,6 +878,8 @@ def build_rdivf():
 
     f.compare_zero(b, 2, True)
     f.emit("POP_JUMP_IF_TRUE", "rfd05")  # b == 0: HW02 yields 0.0
+    f.compare_zero(a, 2, True)
+    f.emit("POP_JUMP_IF_TRUE", "rfd06")  # a == 0: only its sign is in doubt
     store_magnitudes(f, a, b, big_a, big_b)
     call_rdm(f, (big_a, big_b), 0)
     f.emit("STORE_FAST", q)
@@ -880,6 +909,11 @@ def build_rdivf():
     f.emit("RETURN_VALUE")
     f.label("rfd05")
     f.ratio(0)
+    f.emit("RETURN_VALUE")
+    f.label("rfd06")  # a floored quotient is zero only for a zero dividend,
+    f.emit("LOAD_FAST", a)  # and then it carries the sign of a * b
+    f.emit("LOAD_FAST", b)
+    f.emit("BINARY_MULTIPLY")
     f.emit("RETURN_VALUE")
     return f
 

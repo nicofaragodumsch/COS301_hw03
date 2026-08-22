@@ -73,9 +73,12 @@ def format_real(value):
     never exponent notation -- unlike Python's repr, which is what HW02 uses.
     """
     if value != value:
-        return "NaN"
+        return "NaN"  # DecimalFormatSymbols' NaN
     if value in (float("inf"), float("-inf")):
-        return "Infinity" if value > 0 else "-Infinity"
+        # U+221E.  A JVM whose stdout charset is not Unicode writes it as '?',
+        # so a real run may show that instead; either way it is not HW02's
+        # "inf", and this case is listed among the target's limits.
+        return ("-" if value < 0 else "") + "\u221e"
     with localcontext() as context:
         context.prec = 400
         quantized = Decimal(repr(value)).quantize(

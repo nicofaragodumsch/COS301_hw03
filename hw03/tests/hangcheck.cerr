@@ -1,0 +1,5 @@
+warning: real constant 1e+301 needs more precision than JCoCo's 32-bit assembler provides; output may differ
+warning: real constant 1e-30 needs more precision than JCoCo's 32-bit assembler provides; output may differ
+warning: real constant 1e-30 needs more precision than JCoCo's 32-bit assembler provides; output may differ
+warning: real constant 1e-320 needs more precision than JCoCo's 32-bit assembler provides; output may differ
+warning: real constant 1e-322 needs more precision than JCoCo's 32-bit assembler provides; output may differ
